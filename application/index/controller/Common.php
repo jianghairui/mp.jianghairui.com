@@ -18,8 +18,14 @@ class Common extends Controller {
             'app_id' => 'wx0d6f8a78265b1229',
             'secret' => 'b7cfdce371e0c100e7fc1d482933d7f5',
 
-            // 下面为可选项
-            // 指定 API 调用返回结果的类型：array(default)/collection/object/raw/自定义类名
+            'mch_id'             => '1514516351',
+            'key'                => 'LDB15083727504163447056815279712',   // API 密钥
+
+            // 如需使用敏感接口（如退款、发送红包等）需要配置 API 证书路径(登录商户平台下载 API 证书)
+            'cert_path'          =>  '/var/www/mp.jianghairui.com/public/cert/cert.pem', // XXX: 绝对路径！！！！
+            'key_path'           =>  '/var/www/mp.jianghairui.com/public/cert/key.pem',      // XXX: 绝对路径！！！！
+
+            // 下面为可选项,指定 API 调用返回结果的类型：array(default)/collection/object/raw/自定义类名
             'response_type' => 'array',
             'log' => [
                 'level' => 'debug',
@@ -32,6 +38,7 @@ class Common extends Controller {
     private function checkSession() {
         $noneed = [
             'Login/login',
+            'Pay/notify',
         ];
         if (in_array(request()->controller() . '/' . request()->action(), $noneed)) {
             return true;
@@ -56,6 +63,14 @@ class Common extends Controller {
             }
         }
         return true;
+    }
+
+    protected function xml2array($xml)
+    {
+        //禁止引用外部xml实体
+        libxml_disable_entity_loader(true);
+        $values = json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
+        return $values;
     }
 
 

@@ -27,7 +27,26 @@ class Index extends Common
 
     public function cateadd() {
         $pid = input('get.cate_id') ? input('get.cate_id') : 0;
+
         return $this->fetch();
+    }
+
+    public function cateadd_post() {
+        $data = input('post.');
+        foreach ($_FILES as $k=>$v) {
+            if($v['name'] == '') {
+                unset($_FILES[$k]);
+            }
+        }
+        if(!empty($_FILES)) {
+            $info = $this->upload(array_keys($_FILES)[0]);
+            if($info['error'] === 0) {
+                $data['cover'] = $info['data'];
+            }else {
+                return ajax($info['msg'],-1);
+            }
+        }
+        return ajax($data);
     }
 
     public function rlist() {
