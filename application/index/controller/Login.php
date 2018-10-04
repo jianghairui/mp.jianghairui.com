@@ -7,11 +7,12 @@
  */
 namespace app\index\controller;
 use EasyWeChat\Factory;
-use my\MyRedis;
 use think\Db;
 
 class Login extends Common {
-    public function index()
+
+    //小程序登录
+    public function login()
     {
         $data = input('post.');
         $code = $data['code'];
@@ -19,34 +20,69 @@ class Login extends Common {
         $app = Factory::miniProgram($this->mp_config);
         $info = $app->auth->session($code);
 
-        $result = $app->template_message->send([
-            'touser' => $info['openid'],
-            'template_id' => '80gz0yz1GdDlMeFstTf2GxTSMRbEgBtM1nIpYu4F17U',
-            'page' => 'index',
-            'form_id' => '1537431978893',
-            'data' => [
-                'keyword1' => date('Y-m-d H:i:s'),
-                'keyword2' => '吉圣客汉堡',
-                'keyword3' => '18.00',
-                'keyword4' => '1008611',
-            ],
-        ]);
-        return ajax($result);
-        //return 'OK!It is Index/index';
+        if(isset($info['errcode']) && $info['errcode'] !== 0) {
+            return ajax($info,2);
+        }
+        $ret['openid'] = $info['openid'];
+        $ret['session_key'] = $info['session_key'];
+
+        $exist = Db::table('mp_user')->where('openid',$ret['openid'])->find();
+        if($exist) {
+            Db::table('mp_user')->where('openid',$ret['openid'])->update(['last_login_time'=>time()]);
+        }
+        //把3rd_session存入redis
+        $third_session = exec('/usr/bin/head -n 80 /dev/urandom | tr -dc A-Za-z0-9 | head -c 168');
+        mredis()->set($third_session,$ret, 3600*24*7);
+
+        $json['third_session'] = $third_session;
+        return ajax($json);
+    }
+    //小程序授权
+    public function auth() {
+        $iv = input('post.iv');
+        $encryptData = input('post.encryptData');
+        if(!$iv || !$encryptData) {
+            return ajax([],-2);
+        }
+        $app = Factory::miniProgram($this->mp_config);
+        try {
+            $decryptedData = $app->encryptor->decryptData($this->myinfo['session_key'], $iv, $encryptData);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),4);
+        }
+
+        try {
+            $data['nickname'] = $decryptedData['nickName'];
+            $data['openid'] = $decryptedData['openId'];
+            $data['avatar'] = $decryptedData['avatarUrl'];
+            $data['gender'] = $decryptedData['gender'];
+            $data['city'] = $decryptedData['city'];
+            $data['country'] = $decryptedData['country'];
+            $data['province'] = $decryptedData['province'];
+            $data['status'] = 1;
+            $data['create_time'] = time();
+            $exist = Db::table('mp_user')->where('openid',$data['openid'])->find();
+            if(!$exist) {
+                Db::table('mp_user')->insert($data);
+            }else {
+                Db::table('mp_user')->where('openid',$data['openid'])->update($data);
+            }
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),4);
+        }
+        return ajax('授权成功');
     }
 
-
-    public function test() {
-        $arr = ['name'=>'Jianghairu','sex'=>1];
-        $age = $arr['age'];
-//        halt($arr['age']);
-//        die(ROOT_PATH);
-//        $myfile = fopen(ROOT_PATH . "/newfile.txt", "w") or die("Unable to open file!");
-//        $txt = "Bill Gates\n";
-//        fwrite($myfile, $txt);
-//        $txt = "Steve Jobs\n";
-//        fwrite($myfile, $txt);
-//        fclose($myfile);
+//检验地区是否开放
+    private function checkCity($long = '117.04724',$lat = '39.06455') {
+        $info = \my\Geocoding::getAddressComponent($long,$lat);
+        $city = $info['result']['addressComponent']['city'];
+        $exist = Db::table('mp_city')->where(['name'=>$city,'pid'=>0])->find();
+        if($exist) {
+            return true;
+        }else {
+            return false;
+        }
     }
 
 

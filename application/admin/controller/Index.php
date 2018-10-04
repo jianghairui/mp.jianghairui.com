@@ -25,6 +25,11 @@ class Index extends Common
         return $this->fetch();
     }
 
+    public function cateadd() {
+        $pid = input('get.cate_id') ? input('get.cate_id') : 0;
+        return $this->fetch();
+    }
+
     public function rlist() {
         return $this->fetch();
     }

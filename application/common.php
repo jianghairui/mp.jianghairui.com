@@ -17,7 +17,7 @@ function ajax($data = [], $code = 1, $httpCode = 200, $header = [])
         'code' => $code,
         'data' => $data,
     ];
-    if (config('app.app_debug')) {
+    if (config('app_debug')) {
         $ret['cmd'] = request()->controller() . '/' . request()->action();
     }
 
@@ -25,16 +25,6 @@ function ajax($data = [], $code = 1, $httpCode = 200, $header = [])
 //    $header['origin'] = json_encode(request()->subDomain());
     header('Access-Control-Allow-Origin: *');
     return json()->data($ret)->code($httpCode)->header($header);
-}
-
-function checkPost($postArray) {
-    $result = true;
-    foreach ($postArray as $k => $value) {
-        if ($value == "") {
-            return false;
-        }
-    }
-    return $result;
 }
 
 function genCode($length=6) {
@@ -197,4 +187,8 @@ function generateVerify($width,$height,$type,$length,$fontsize) {
 
 function randColor($image) {
     return imagecolorallocate($image,mt_rand(0,255),mt_rand(0,255),mt_rand(0,255));
+}
+
+function mredis() {
+    return \my\MyRedis::getInstance();
 }
