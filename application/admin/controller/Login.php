@@ -7,7 +7,6 @@
  */
 namespace app\admin\controller;
 use think\Db;
-use think\Session;
 
 class Login extends Common {
 
