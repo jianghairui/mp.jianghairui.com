@@ -84,9 +84,69 @@ class Index extends Common
         if($res) {
             return ajax([]);
         }else {
+            if(isset($val['cover'])) {
+                @unlink($val['cover']);
+            }
             return ajax('添加失败',-1);
         }
     }
+
+    public function catemod() {
+        $cate_id = input('param.cate_id') ? input('param.cate_id') : 0;
+        $exist = Db::table('mp_cate')->where(['id'=>$cate_id])->find();
+        if(!$exist) {
+            $this->error('非法操作');
+        }
+        $this->assign('cate',$exist);
+        return $this->fetch();
+    }
+
+    public function catemod_post() {
+        $val['cate_name'] = input('post.cate_name');
+        $val['id'] = input('post.cate_id');
+        $this->checkPost($val);
+
+        $exist = Db::table('mp_cate')->where(['id'=>$val['id']])->find();
+        if(!$exist) {
+            return ajax('非法操作',-1);
+        }
+
+        if($this->checkExist('mp_cate',[
+            'cate_name'=>$val['cate_name'],
+            'id'=>['neq',$val['id']]
+        ])) {
+            return ajax('分类已存在',-1);
+        }
+        foreach ($_FILES as $k=>$v) {
+            if($v['name'] == '') {
+                unset($_FILES[$k]);
+            }
+        }
+
+        if(!empty($_FILES)) {
+            $info = $this->upload(array_keys($_FILES)[0]);
+            if($info['error'] === 0) {
+                $val['cover'] = $info['data'];
+            }else {
+                return ajax($info['msg'],-1);
+            }
+        }
+
+        $res = Db::table('mp_cate')->update($val);
+        if($res !== false) {
+            if(!empty($_FILES)) {
+                @unlink($exist['cover']);
+            }
+            return ajax([]);
+        }else {
+            if(!empty($_FILES)) {
+                @unlink($val['cover']);
+            }
+            return ajax('修改失败',-1);
+        }
+    }
+
+    public function catedel() {}
 
     public function rlist() {
         return $this->fetch();

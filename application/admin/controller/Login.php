@@ -41,10 +41,15 @@ class Login extends Common {
             $where['password'] = md5(input('post.password') . config('login_key'));
             $result = Db::table('mp_admin')->where($where)->find();
             if($result) {
+                Db::table('mp_admin')->where($where)->setInc('login_times');
+                Db::table('mp_admin')->where($where)->update(['last_login_time'=>time(),'last_login_ip'=>$this->getip()]);
                 session('mploginstatus',md5(input('post.username') . 'jiang'));
                 session('admin_id',$result['id']);
                 session('username',$result['username']);
                 session('realname',$result['realname']);
+                session('login_times',$result['login_times']);
+                session('last_login_time',$result['last_login_time']);
+                session('last_login_ip',$result['last_login_ip']);
 
                 if(input('post.remember_pwd') == 1) {
                     cookie('mp_username',input('post.username'),3600*24*7);
