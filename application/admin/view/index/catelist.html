@@ -160,8 +160,11 @@
                 dataType: 'json',
                 data:{cate_id:id},
                 success: function(data){
-                    $(obj).parents("tr").remove();
-                    layer.msg('已删除!',{icon:1,time:1000});
+                    console.log(data)
+                    if(data.code == 1) {
+                        $(obj).parents("tr").remove();
+                        layer.msg('已删除!',{icon:1,time:1000});
+                    }
                 },
                 error:function(data) {
                     console.log(data.msg);

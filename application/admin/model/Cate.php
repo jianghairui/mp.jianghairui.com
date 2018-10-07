@@ -6,7 +6,6 @@
  * Time: 17:17
  */
 namespace app\admin\model;
-
 use think\Model;
 
 class Cate extends Model
@@ -16,9 +15,29 @@ class Cate extends Model
 
     protected static function init()
     {
-        Cate::event('before_insert', function ($cate) {
-            $cate->cate_name = 'OK SYOUNARA';
+//        self::beforeInsert(function ($data) {
+//            //控制需要用save或create方法触发,不可用insert
+////            halt($data);
+//            return true;
+//        });
+//
+//        self::beforeUpdate(function ($data) {
+//            //控制需要用save或update方法触发
+//            halt($data);
+//            return false;
+//        });
+//
+//        self::beforeDelete(function ($data) {
+//            //控制需要用destroy方法触发,不可用delete
+//            halt($data);
+//            return false;
+//        });
+
+        self::afterDelete(function ($data) {
+            //控制需要用destroy方法触发,不可用delete
+            @unlink($data['cover']);
         });
+
     }
 
 

@@ -8,20 +8,20 @@
 namespace app\index\controller;
 use EasyWeChat\Factory;
 use think\Db;
+use think\Exception;
 
 class Login extends Common {
 
     //小程序登录
     public function login()
     {
-        $data = input('post.');
-        $code = $data['code'];
-
+        $code = input('post.code');
+        $this->checkPost(['code'=>$code]);
         $app = Factory::miniProgram($this->mp_config);
         $info = $app->auth->session($code);
 
         if(isset($info['errcode']) && $info['errcode'] !== 0) {
-            return ajax($info,2);
+            return ajax($info,-1);
         }
         $ret['openid'] = $info['openid'];
         $ret['session_key'] = $info['session_key'];
@@ -41,6 +41,10 @@ class Login extends Common {
     public function auth() {
         $iv = input('post.iv');
         $encryptData = input('post.encryptData');
+        $this->checkPost([
+            'iv' => $iv,
+            'encryptData' => $encryptData
+        ]);
         if(!$iv || !$encryptData) {
             return ajax([],-2);
         }

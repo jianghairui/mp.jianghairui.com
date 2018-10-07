@@ -153,16 +153,13 @@ class Index extends Common
         if(!$exist) {
             return ajax('非法操作',-1);
         }
-
-        $res = Db::table('mp_cate')->where('id',$val['id'])->delete();
-        if($res !== false) {
-            if($exist['pid'] == 0) {
-                Db::table('mp_cate')->where('pid',$val['id'])->delete();
-            }
-            return ajax([],1);
-        }else {
-            return ajax([],-1);
+        $model = model('Cate');
+        $model::destroy($val['id']);
+        if($exist['pid'] == 0) {
+            $child_ids = Db::table('mp_cate')->where('pid','eq',$val['id'])->column('id');
+            $model::destroy($child_ids);
         }
+        return ajax([],1);
     }
 
     public function cate_stop() {
@@ -228,10 +225,12 @@ class Index extends Common
 
 
     public function test() {
-//        $data = ['cate_name'=>time()];
-//        $model = model('Cate');
-//        $res = $model->insert($data);
-//        halt($res);
+
+//        $data = ['cate_name'=>date('Y年m月d日'),'id'=>29];
+        $data = ['cate_name'=>date('Y年m月d日')];
+        $model = model('Cate');
+        $res = $model::destroy(33);
+        halt($res);
         //        Db::table('one')->insert(['name'=>'张涛','age'=>24,'sex'=>1]);
 //        $tableinfo = Db::table('one')->getLastInsID();
 //        $where = [];

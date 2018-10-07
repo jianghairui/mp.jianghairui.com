@@ -39,7 +39,7 @@ class Common extends Controller {
         $noneed = [
             'Login/login',
             'Pay/notify',
-            'Index/sendtpl',
+            'Index/getcitylist',
         ];
         if (in_array(request()->controller() . '/' . request()->action(), $noneed)) {
             return true;
