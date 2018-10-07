@@ -1,6 +1,9 @@
 .idea
 composer.lock
 *.log
-thinkphp
-application/database.php
+config/database.php
 public/cert
+.vscode
+*.log
+.env
+.DS_Store

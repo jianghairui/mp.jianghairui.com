@@ -2,7 +2,6 @@
 namespace app\admin\controller;
 use think\Db;
 use think\Exception;
-
 class Index extends Common
 {
     public function index() {
@@ -16,6 +15,7 @@ class Index extends Common
         $count = count($list);
         $this->assign('catelist',$list);
         $this->assign('count',$count);
+//        $this->view->engine->layout(true);
         return $this->fetch();
     }
 
@@ -146,7 +146,66 @@ class Index extends Common
         }
     }
 
-    public function catedel() {}
+    public function cate_del() {
+        $val['id'] = input('post.cate_id');
+        $this->checkPost($val);
+        $exist = Db::table('mp_cate')->where('id',$val['id'])->find();
+        if(!$exist) {
+            return ajax('非法操作',-1);
+        }
+
+        $res = Db::table('mp_cate')->where('id',$val['id'])->delete();
+        if($res !== false) {
+            if($exist['pid'] == 0) {
+                Db::table('mp_cate')->where('pid',$val['id'])->delete();
+            }
+            return ajax([],1);
+        }else {
+            return ajax([],-1);
+        }
+    }
+
+    public function cate_stop() {
+        $val['id'] = input('post.cate_id');
+        $this->checkPost($val);
+        $exist = Db::table('mp_cate')->where('id',$val['id'])->find();
+        if(!$exist) {
+            return ajax('非法操作',-1);
+        }
+
+        $res = Db::table('mp_cate')->where('id',$val['id'])->update(['status'=>0]);
+        if($res !== false) {
+            if($exist['pid'] == 0) {
+                Db::table('mp_cate')->where('pid',$val['id'])->update(['status'=>0]);
+            }
+            return ajax([],1);
+        }else {
+            return ajax([],-1);
+        }
+    }
+
+    public function cate_start() {
+        $val['id'] = input('post.cate_id');
+        $this->checkPost($val);
+        $exist = Db::table('mp_cate')->where('id',$val['id'])->find();
+        if(!$exist) {
+            return ajax('非法操作',-1);
+        }
+
+        $res = Db::table('mp_cate')->where('id',$val['id'])->update(['status'=>1]);
+        if($res !== false) {
+            if($exist['pid'] == 0) {
+                Db::table('mp_cate')->where('pid',$val['id'])->update(['status'=>1]);
+            }
+            return ajax([],1);
+        }else {
+            return ajax([],-1);
+        }
+    }
+
+
+
+
 
     public function rlist() {
         return $this->fetch();
@@ -169,6 +228,10 @@ class Index extends Common
 
 
     public function test() {
+//        $data = ['cate_name'=>time()];
+//        $model = model('Cate');
+//        $res = $model->insert($data);
+//        halt($res);
         //        Db::table('one')->insert(['name'=>'张涛','age'=>24,'sex'=>1]);
 //        $tableinfo = Db::table('one')->getLastInsID();
 //        $where = [];

@@ -29,16 +29,22 @@
                     <td class="td-status">{if condition="$li['status'] == 1"}<span class="label label-success radius">已启用</span>{else /}<span class="label label-defaunt radius">已禁用</span>{/if}</td>
                     <td><span>无</span></td>
                     <td class="td-manage">
+                        {if condition="$li['status'] == 1"}
+                        <a style="text-decoration:none" class="ml-5" style="text-decoration:none" onClick="cate_stop(this,{$li['id']})" href="javascript:;" title="禁用">
+                            <i class="Hui-iconfont">&#xe6de;</i>
+                        </a>
+                        {else /}
+                        <a style="text-decoration:none" class="ml-5" style="text-decoration:none" onClick="cate_start(this,{$li['id']})" href="javascript:;" title="启用">
+                            <i class="Hui-iconfont">&#xe603;</i>
+                        </a>
+                        {/if}
                         <a style="text-decoration:none" class="ml-5" style="text-decoration:none" href="javascript:window.location.href = '{:url('Index/childlist',array('cate_id'=>$li['id']))}';" title="查看子分类">
                             <i class="Hui-iconfont">&#xe667;</i>
-                        </a>
-                        <a style="text-decoration:none" class="ml-5" style="text-decoration:none" onClick="cate_stop(this,'10001')" href="javascript:;" title="下架">
-                            <i class="Hui-iconfont">&#xe6de;</i>
                         </a>
                         <a style="text-decoration:none" class="ml-5" onClick="cate_edit('分类编辑','{:url("Index/catemod",array("cate_id"=>$li["id"]))}')" href="javascript:;" title="编辑">
                             <i class="Hui-iconfont">&#xe6df;</i>
                         </a>
-                        <a style="text-decoration:none" class="ml-5" onClick="cate_del(this,'10001')" href="javascript:;" title="删除">
+                        <a style="text-decoration:none" class="ml-5" onClick="cate_del(this,{$li['id']})" href="javascript:;" title="删除">
                             <i class="Hui-iconfont">&#xe6e2;</i>
                         </a>
                     </td>
@@ -82,26 +88,6 @@
         layer.full(index);
     }
 
-    /*分类-下架*/
-    function cate_stop(obj,id){
-        layer.confirm('确认要禁用吗？',function(index){
-            $(obj).parents("tr").find(".td-manage").prepend('<a style="text-decoration:none" class="ml-5" onClick="cate_start(this,id)" href="javascript:;" title="发布"><i class="Hui-iconfont">&#xe603;</i></a>');
-            $(obj).parents("tr").find(".td-status").html('<span class="label label-defaunt radius">已禁用</span>');
-            $(obj).remove();
-            layer.msg('已禁用!',{icon: 5,time:1000});
-        });
-    }
-
-    /*分类-发布*/
-    function cate_start(obj,id){
-        layer.confirm('确认要启用吗？',function(index){
-            $(obj).parents("tr").find(".td-manage").prepend('<a style="text-decoration:none" class="ml-5" onClick="cate_stop(this,id)" href="javascript:;" title="下架"><i class="Hui-iconfont">&#xe6de;</i></a>');
-            $(obj).parents("tr").find(".td-status").html('<span class="label label-success radius">已启用</span>');
-            $(obj).remove();
-            layer.msg('已启用!',{icon: 6,time:1000});
-        });
-    }
-
     /*分类-编辑*/
     function cate_edit(title,url){
         var index = layer.open({
@@ -112,13 +98,67 @@
         layer.full(index);
     }
 
+    /*分类-下架*/
+    function cate_stop(obj,id){
+        layer.confirm('确认要禁用吗？',function(index){
+            $.ajax({
+                url:"{:url('Index/cate_stop')}",
+                type:'post',
+                dataType:'json',
+                data:{cate_id:id},
+                success:function(data) {
+                    console.log(data)
+                    if(data.code == 1) {
+                        $(obj).parents("tr").find(".td-manage").prepend('<a style="text-decoration:none" class="ml-5" onClick="cate_start(this,id)" href="javascript:;" title="启用"><i class="Hui-iconfont">&#xe603;</i></a>');
+                        $(obj).parents("tr").find(".td-status").html('<span class="label label-defaunt radius">已禁用</span>');
+                        $(obj).remove();
+                        layer.msg('已禁用!',{icon: 1,time:1000});
+                    }else {
+                        layer.msg(data.message,{icon:2,time:1000})
+                    }
+                },
+                error:function(data) {
+                    layer.msg('请求失败!',{icon:5,time:1000})
+                },
+            })
+
+        });
+    }
+
+    /*分类-发布*/
+    function cate_start(obj,id){
+        layer.confirm('确认要启用吗？',function(index){
+            $.ajax({
+                url:"{:url('Index/cate_start')}",
+                type:'post',
+                dataType:'json',
+                data:{cate_id:id},
+                success:function(data) {
+                    console.log(data)
+                    if(data.code == 1) {
+                        $(obj).parents("tr").find(".td-manage").prepend('<a style="text-decoration:none" class="ml-5" onClick="cate_stop(this,id)" href="javascript:;" title="禁用"><i class="Hui-iconfont">&#xe6de;</i></a>');
+                        $(obj).parents("tr").find(".td-status").html('<span class="label label-success radius">已启用</span>');
+                        $(obj).remove();
+                        layer.msg('已启用!',{icon: 1,time:1000});
+                    }else {
+                        layer.msg(data.message,{icon:2,time:1000})
+                    }
+                },
+                error:function(data) {
+                    layer.msg('请求失败!',{icon:5,time:1000})
+                },
+            })
+        });
+    }
+
     /*分类-删除*/
     function cate_del(obj,id){
         layer.confirm('确认要删除吗？',function(index){
             $.ajax({
+                url: "{:url('Index/cate_del')}",
                 type: 'POST',
-                url: '',
                 dataType: 'json',
+                data:{cate_id:id},
                 success: function(data){
                     $(obj).parents("tr").remove();
                     layer.msg('已删除!',{icon:1,time:1000});
