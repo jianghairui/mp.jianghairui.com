@@ -77,17 +77,5 @@ class Login extends Common {
         return ajax('授权成功');
     }
 
-//检验地区是否开放
-    private function checkCity($long = '117.04724',$lat = '39.06455') {
-        $info = \my\Geocoding::getAddressComponent($long,$lat);
-        $city = $info['result']['addressComponent']['city'];
-        $exist = Db::table('mp_city')->where(['name'=>$city,'pid'=>0])->find();
-        if($exist) {
-            return true;
-        }else {
-            return false;
-        }
-    }
-
 
 }

@@ -27,6 +27,50 @@ function ajax($data = [], $code = 1, $httpCode = 200, $header = [])
     return json()->data($ret)->code($httpCode)->header($header);
 }
 
+function input_limit($str,$limit_num,$char='utf8') {
+    if(mb_strlen($str,$char) > $limit_num) {
+        return false;
+    }
+    return true;
+}
+
+function is_tel($tel) {
+    if(!preg_match('/13[123569]{1}\d{8}|15[1235689]\d{8}|188\d{8}/',$tel)) {
+        return false;
+    }
+    return true;
+}
+
+function is_currency($str) {
+    if(!preg_match('/^\d{1,8}(\.\d{1,2})?$/',$str)) {
+        return false;
+    }
+    return true;
+}
+
+function is_lonlat($lon='',$lat='') {
+    $lon_rule = '/^-?((0|1?[0-7]?[0-9]?)(([.][0-9]{1,6})?)|180(([.][0]{1,6})?))$/';
+    $lat_rule = '/^-?((0|[1-8]?[0-9]?)(([.][0-9]{1,6})?)|90(([.][0]{1,6})?))$/';
+    if(preg_match($lon_rule,$lon) && preg_match($lat_rule,$lat)) {
+        return true;
+    }
+    return false;
+}
+
+function is_date($date, $formats = array("Y-m-d", "Y/m/d","Y-m-d H:i","Y-m-d H:i:s")) {
+    $unixTime = strtotime($date);
+    if (!$unixTime) { //strtotime转换不对，日期格式显然不对。
+        return false;
+    }
+    //校验日期的有效性，只要满足其中一个格式就OK
+    foreach ($formats as $format) {
+        if (date($format, $unixTime) == $date) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function genCode($length=6) {
     $key='';
     $pattern='1234567890';
@@ -106,21 +150,6 @@ function randomkeys($length) {
         $returnStr .= $pattern {mt_rand ( 0, 61 )};
     }
     return $returnStr;
-}
-
-function is_date($date, $formats = array("Y-m-d", "Y/m/d","Y-m-d H:i","Y-m-d H:i:s")) {
-    $unixTime = strtotime($date);
-    if (!$unixTime) { //strtotime转换不对，日期格式显然不对。
-        return false;
-    }
-    //校验日期的有效性，只要满足其中一个格式就OK
-    foreach ($formats as $format) {
-        if (date($format, $unixTime) == $date) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 //创建TOKEN

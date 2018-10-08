@@ -10,29 +10,37 @@ class Index extends Common
 
     public function catelist()
     {
-        $map['pid'] = 0;
+        $map[] = ['pid','=',0];
         $list = Db::table('mp_cate')->where($map)->select();
         $count = count($list);
         $this->assign('catelist',$list);
         $this->assign('count',$count);
-//        $this->view->engine->layout(true);
         return $this->fetch();
     }
 
     public function childlist()
     {
         $cate_id = input('param.cate_id') ? input('param.cate_id') : 0;
+        $page['query'] = http_build_query(input('param.'));
+        $curr_page = input('param.page',config('app.page'));
+        $perpage = input('param.perpage',config('app.perpage'));
 
-        $exist = Db::table('mp_cate')->where(['id'=>$cate_id])->find();
+        $map[] = ['id','=',$cate_id];
+        $exist = Db::table('mp_cate')->where($map)->find();
         if(!$exist) {
             $this->error('非法操作');
         }
-        $map['pid'] = $cate_id;
-        $list = Db::table('mp_cate')->where($map)->select();
-        $count = count($list);
+        $where[] = ['pid','=',$cate_id];
+        $count = Db::table('mp_cate')->where($where)->count();
+        $page['count'] = $count;
+        $page['totalPage'] = ceil($count/$perpage);
+
+        $list = Db::table('mp_cate')->where($where)->limit(($curr_page - 1)*$perpage,$perpage)->select();
+        $page['curr'] = $curr_page;
         $this->assign('catelist',$list);
-        $this->assign('count',$count);
+        $this->assign('page',$page);
         $this->assign('cate',$exist);
+
         return $this->fetch();
     }
 
@@ -41,14 +49,14 @@ class Index extends Common
         if($cate_id == 0) {
             $this->assign('cate_name','顶级分类');
         }else {
-            $exist = Db::table('mp_cate')->where(['id'=>$cate_id,'pid'=>0])->find();
+            $where[] = ['id','=',$cate_id];
+            $where[] = ['pid','=',0];
+            $exist = Db::table('mp_cate')->where($where)->find();
             if(!$exist) {
                 $this->error('非法操作');
             }
             $this->assign('cate_name',$exist['cate_name']);
         }
-        $list = Db::table('mp_cate')->where(['pid'=>$cate_id])->select();
-        $this->assign('catelist',$list);
         $this->assign('cate_id',$cate_id);
         return $this->fetch();
     }
@@ -56,14 +64,19 @@ class Index extends Common
     public function cateadd_post() {
         $val['cate_name'] = input('post.cate_name');
         $val['pid'] = input('post.pid');
+
         $this->checkPost($val);
         if($val['pid'] != 0) {
-            $exist = Db::table('mp_cate')->where(['id'=>$val['pid'],'pid'=>0])->find();
+            $where[] = ['pid','=',0];
+            $where[] = ['id','=',$val['pid']];
+            $exist = Db::table('mp_cate')->where($where)->find();
             if(!$exist) {
                 return ajax('非法操作',-1);
             }
         }
-        if($this->checkExist('mp_cate',$val)) {
+        $map[] = ['cate_name','=',$val['cate_name']];
+        $map[] = ['pid','=',$val['pid']];
+        if($this->checkExist('mp_cate',$map)) {
             return ajax('分类已存在',-1);
         }
 
@@ -93,7 +106,7 @@ class Index extends Common
 
     public function catemod() {
         $cate_id = input('param.cate_id') ? input('param.cate_id') : 0;
-        $exist = Db::table('mp_cate')->where(['id'=>$cate_id])->find();
+        $exist = Db::table('mp_cate')->where('id',$cate_id)->find();
         if(!$exist) {
             $this->error('非法操作');
         }
@@ -106,14 +119,14 @@ class Index extends Common
         $val['id'] = input('post.cate_id');
         $this->checkPost($val);
 
-        $exist = Db::table('mp_cate')->where(['id'=>$val['id']])->find();
+        $exist = Db::table('mp_cate')->where('id',$val['id'])->find();
         if(!$exist) {
             return ajax('非法操作',-1);
         }
 
         if($this->checkExist('mp_cate',[
-            'cate_name'=>$val['cate_name'],
-            'id'=>['neq',$val['id']]
+            ['cate_name','=',$val['cate_name']],
+            ['id','<>',$val['id']]
         ])) {
             return ajax('分类已存在',-1);
         }
@@ -154,11 +167,20 @@ class Index extends Common
             return ajax('非法操作',-1);
         }
         $model = model('Cate');
-        $model::destroy($val['id']);
         if($exist['pid'] == 0) {
             $child_ids = Db::table('mp_cate')->where('pid','eq',$val['id'])->column('id');
-            $model::destroy($child_ids);
+            try {
+                $model::destroy($child_ids);
+            }catch (Exception $e) {
+                return ajax($e->getMessage(),-1);
+            }
         }
+        try {
+            $model::destroy($val['id']);
+        }catch (Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+
         return ajax([],1);
     }
 
@@ -225,11 +247,8 @@ class Index extends Common
 
 
     public function test() {
-
-//        $data = ['cate_name'=>date('Y年m月d日'),'id'=>29];
-        $data = ['cate_name'=>date('Y年m月d日')];
-        $model = model('Cate');
-        $res = $model::destroy(33);
+        $map[] = ['id','between','38,45'];
+        $res = Db::table('mp_cate')->where($map)->select();
         halt($res);
         //        Db::table('one')->insert(['name'=>'张涛','age'=>24,'sex'=>1]);
 //        $tableinfo = Db::table('one')->getLastInsID();

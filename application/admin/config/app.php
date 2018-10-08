@@ -9,6 +9,8 @@
 return array(
     'layout_on'     =>  true,
     'layout_name'   =>  'layout',
+    'page'   =>  1,
+    'perpage'   =>  10,
     'session'   => [
         'prefix'        => 'jiang',
         'type'          => '',
@@ -20,10 +22,4 @@ return array(
         //支持Html,Console
         'type'  =>  'html',
     ],
-    'code' => [
-        '-3' => '数据不能为空',
-        '-2' => 'session无效',
-        '-1' => '操作失败',
-        '1' => '操作成功',
-    ]
 );

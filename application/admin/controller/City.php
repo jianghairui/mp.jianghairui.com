@@ -3,15 +3,15 @@ namespace app\admin\controller;
 use think\Controller;
 use think\Db;
 
-class Test extends Controller
+class City extends Controller
 {
     public function _initialize()
     {
         parent::_initialize();
-//        echo '初始化函数<br>';
+//      导入城市列表
     }
 
-    public function addCity()
+    private function addCity()
     {
         $code = '110100000000';
         $code = substr($code, 0,4);
@@ -42,7 +42,7 @@ class Test extends Controller
 //        halt($res);
     }
 
-    public function getCity()
+    private function getCity()
     {
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, 'http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2017/' . 11 . '.html');curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
@@ -68,7 +68,7 @@ class Test extends Controller
         halt($list);
     }
 
-    public function getProvince()
+    private function getProvince()
     {
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, 'http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2017/index.html');

@@ -73,11 +73,17 @@
                         url: "{:url('Index/cateadd_post')}" ,
                         success: function(data){
                             console.log(data)
-                            layer.msg('添加成功!',{icon:1,time:1000});
-                            setTimeout("window.parent.location.reload()", 1000)
+                            if(data.code == 1) {
+                                layer.msg('添加成功!',{icon:1,time:1000});
+                                setTimeout("window.parent.location.reload()", 1000)
+                            }else {
+                                layer.msg(data.data,{icon:2,time:1000});
+                                isclick = true
+                            }
+
                         },
                         error: function(XmlHttpRequest, textStatus, errorThrown){
-                            layer.msg('error!',{icon:1,time:1000});
+                            layer.msg('error!',{icon:5,time:1000});
                             isclick = true
                         }
                     });

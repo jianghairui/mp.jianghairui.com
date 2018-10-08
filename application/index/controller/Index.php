@@ -5,25 +5,6 @@ use think\Db;
 
 class Index extends Common
 {
-    public function getCitylist() {
-        $citylist = Db::table('mp_city')->select();
-        $data['citylist'] = $this->sortMerge($citylist,0);
-        $catelist = Db::table('mp_cate')->select();
-        $data['catelist'] = $this->sortMerge($catelist,0);
-        return ajax($data);
-    }
-
-    public function getRlist()
-    {
-        $this->checkPost(input('post.'));
-        //return 'OK!It is Index/index';
-    }
-
-    public function getCatelist() {
-
-    }
-
-
 
     public function setcache() {
         mredis()->set('arr',array('username'=>'Viki','sex'=>0),30);
@@ -108,19 +89,7 @@ class Index extends Common
 //        halt($result);
     }
 
-    private function sortMerge($node,$pid=0)
-    {
-        $arr = array();
-        foreach($node as $key=>$v)
-        {
-            if($v['pid'] == $pid)
-            {
-                $v['child'] = $this->sortMerge($node,$v['id']);
-                $arr[] = $v;
-            }
-        }
-        return $arr;
-    }
+
 
 
 
