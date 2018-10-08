@@ -2,20 +2,21 @@
 /**
  * Created by PhpStorm.
  * User: JHR
- * Date: 2018/9/25
- * Time: 16:09
+ * Date: 2018/10/8
+ * Time: 18:21
  */
 namespace app\admin\controller;
 
-class Member extends Common {
+class Banner extends Common {
 
-    public function memberlist() {
+    public function slideshow() {
         return $this->fetch();
     }
 
-    public function winnerlist() {
+    public function prizelist() {
         return $this->fetch();
     }
+
 
 
 

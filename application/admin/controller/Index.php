@@ -4,10 +4,12 @@ use think\Db;
 use think\Exception;
 class Index extends Common
 {
+
+    //首页
     public function index() {
         return $this->fetch();
     }
-
+    //分类列表
     public function catelist()
     {
         $map[] = ['pid','=',0];
@@ -17,7 +19,7 @@ class Index extends Common
         $this->assign('count',$count);
         return $this->fetch();
     }
-
+    //子分类列表
     public function childlist()
     {
         $cate_id = input('param.cate_id') ? input('param.cate_id') : 0;
@@ -43,7 +45,7 @@ class Index extends Common
 
         return $this->fetch();
     }
-
+    //添加分类页面
     public function cateadd() {
         $cate_id = input('param.cate_id') ? input('param.cate_id') : 0;
         if($cate_id == 0) {
@@ -60,7 +62,7 @@ class Index extends Common
         $this->assign('cate_id',$cate_id);
         return $this->fetch();
     }
-
+    //添加分类提交
     public function cateadd_post() {
         $val['cate_name'] = input('post.cate_name');
         $val['pid'] = input('post.pid');
@@ -103,7 +105,7 @@ class Index extends Common
             return ajax('添加失败',-1);
         }
     }
-
+    //修改分类页面
     public function catemod() {
         $cate_id = input('param.cate_id') ? input('param.cate_id') : 0;
         $exist = Db::table('mp_cate')->where('id',$cate_id)->find();
@@ -113,7 +115,7 @@ class Index extends Common
         $this->assign('cate',$exist);
         return $this->fetch();
     }
-
+    //修改分类提交
     public function catemod_post() {
         $val['cate_name'] = input('post.cate_name');
         $val['id'] = input('post.cate_id');
@@ -158,7 +160,7 @@ class Index extends Common
             return ajax('修改失败',-1);
         }
     }
-
+    //删除分类
     public function cate_del() {
         $val['id'] = input('post.cate_id');
         $this->checkPost($val);
@@ -183,7 +185,7 @@ class Index extends Common
 
         return ajax([],1);
     }
-
+    //停用分类
     public function cate_stop() {
         $val['id'] = input('post.cate_id');
         $this->checkPost($val);
@@ -202,7 +204,7 @@ class Index extends Common
             return ajax([],-1);
         }
     }
-
+    //启用分类
     public function cate_start() {
         $val['id'] = input('post.cate_id');
         $this->checkPost($val);
@@ -223,24 +225,35 @@ class Index extends Common
     }
 
 
-
-
-
     public function rlist() {
         return $this->fetch();
     }
 
-    public function comment() {
-        return $this->fetch();
-    }
 
-    public function feedback() {
-        return $this->fetch();
-    }
 
-    public function personal() {
-        return $this->fetch();
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

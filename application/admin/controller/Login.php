@@ -75,6 +75,9 @@ class Login extends Common {
         session('login_vcode',$vcode);
     }
 
+    public function personal() {
+        return $this->fetch();
+    }
 
 
 
