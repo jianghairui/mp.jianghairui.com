@@ -103,8 +103,7 @@
             }
             $("#formAjax").append('<input type="file" id="file' + i + '" name="file' + i + '" style="display: none">');
 
-            $("#file" + i).click();
-            $("#file" + i).change(function(e){
+            $(document).on('change',"#file" + i,function(e){
                 if(checkfile(i) !== true) {
                     $("#file" + i).remove()
                     return false
@@ -118,6 +117,8 @@
                     $(this).parent().parent().remove()
                 })
             });
+
+            $("#file" + i).click();
 
         })
 
@@ -194,6 +195,4 @@
 
     })
 
-
-    var haha;
 </script>

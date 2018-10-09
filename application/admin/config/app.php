@@ -10,12 +10,8 @@ return array(
     'layout_on'     =>  true,
     'layout_name'   =>  'layout',
     'page'   =>  1,
-    'perpage'   =>  10,
-    'session'   => [
-        'prefix'        => 'jiang',
-        'type'          => '',
-        'auto_start'    => true,
-    ],
+    'perpage'   =>  2,
+
     'login_key' => 'jiang',
     'app_trace' => true,
     'trace'     =>  [

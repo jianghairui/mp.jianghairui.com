@@ -4913,7 +4913,7 @@ $(function() {
 	});
 
 	/*上传*/
-	$(document).on("change", ".input-file",function() {
+	$(document).on("change", ".input-file",function(e) {
 		var uploadVal = $(this).val();
 		$(this).parent().find(".upload-url").val(uploadVal).focus().blur();
 	});
