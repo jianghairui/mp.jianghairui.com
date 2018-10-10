@@ -37,7 +37,7 @@
                 <th width="60">排序</th>
                 <th width="200">图片</th>
                 <th>奖品描述</th>
-                <th width="120">活动时间</th>
+                <th width="240">活动时间</th>
                 <th width="60">奖品数量</th>
                 <th width="60">中奖概率</th>
                 <th width="60">状态</th>
@@ -55,7 +55,7 @@
                     <div id="cover" class="thumbnail" style="background-image: url('/{$li.cover}')"></div>
                 </td>
                 <td class="text-c">{$li.title}</td>
-                <td class="text-c">{$li.start_time|date='Y-m-d H:i:s'}</td>
+                <td class="text-c">{$li.start_time|date='Y-m-d H:i'} 到 {$li.end_time|date='Y-m-d H:i'}</td>
                 <td class="text-c">{$li.num}</td>
                 <td class="text-c">{$li.probability}%</td>
                 <td class="td-status">

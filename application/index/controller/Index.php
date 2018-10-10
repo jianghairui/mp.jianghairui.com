@@ -125,8 +125,9 @@ class Index extends Common
     public function completeInfo() {
 
         $val['nickname'] = input('post.nickname');
-        $val['gender'] = input('post.gender');
+        $val['gender'] = input('post.gender',1);
         $val['city'] = input('post.city');
+        $val['age'] = input('post.age');
 
         $val['job'] = input('post.job');
         $val['resume'] = input('post.resume');
@@ -143,12 +144,16 @@ class Index extends Common
         if(!input_limit($val['career'],500)) {
             return ajax('工作经历不超过500字',15);
         }
+        if(!in_array($val['gender'],[1,2])) {
+            return ajax('非法参数gender',-3);
+        }
 
         try {
             Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->update([
                 'nickname' => $val['nickname'],
                 'gender' => $val['gender'],
                 'city' => $val['city'],
+                'age' => $val['age'],
             ]);
         } catch (\Exception $e) {
             return ajax($e->getMessage(),-1);

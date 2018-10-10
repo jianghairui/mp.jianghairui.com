@@ -131,36 +131,53 @@ class Api extends Common {
     public function apply()
     {
         $val['rid'] = input('post.rid');
-        $val['to_openid'] = $this->myinfo['openid'];
         $this->checkPost($val);
+        $val['intro_openid'] = input('post.intro_openid');
+        $val['to_openid'] = $this->myinfo['openid'];
+
         $this->checkRealnameAuth();
+
+        if($val['intro_openid'] == $this->myinfo['openid']) {
+            unset($val['intro_openid']);
+        }
+
+        if($val['intro_openid']) {
+            $res = Db::table('mp_user')->where('openid','=',$val['intro_openid'])->find();
+            if(!$res) {
+                return ajax('分享人ID不存在',23);
+            }
+        }
 
         $map[] = ['id','=',$val['rid']];
         $map[] = ['pay_status','=',1];
         $map[] = ['status','=',1];
-        if(!$this->checkExist('mp_req',$map)) {
+
+        $req_exist = Db::table('mp_req')->where($map)->find();
+        if(!$req_exist) {
             return ajax([],10);
         }
+
+        if($req_exist['f_openid'] == $this->myinfo['openid']) {
+            return ajax('这是自己发的单',22);
+        }
+
         $where[] = ['rid','=',$val['rid']];
         $where[] = ['to_openid','=',$val['to_openid']];
         if($this->checkExist('mp_apply',$where)) {
             return ajax([],11);
         }
 
-        $val['to_nickname'] = input('post.to_nickname');
-        $val['to_avatar'] = input('post.to_avatar');
         $val['apply_time'] = time();
+        $user = Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->find();
+        $val['to_nickname'] = $user['nickname'];
+        $val['to_avatar'] = $user['avatar'];
 
         try {
             $res = Db::table('mp_apply')->insert($val);
         }catch (\Exception $e) {
             return ajax($e->getMessage(),-1);
         }
-        if($res) {
-            return ajax([],1);
-        }else {
-            return ajax([],-1);
-        }
+        return ajax([],1);
     }
 
 

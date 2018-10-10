@@ -40,6 +40,7 @@ class Login extends Common {
     }
     //小程序用户授权
     public function userAuth() {
+
         $iv = input('post.iv');
         $encryptData = input('post.encryptData');
         $this->checkPost([
@@ -58,7 +59,7 @@ class Login extends Common {
 
         $exist = Db::table('mp_user')->where('openid','=',$decryptedData['openId'])->find();
         if($exist) {
-            return ajax('授权成功',1);
+            return ajax('已授权',1);
         }
 
         try {
@@ -69,7 +70,7 @@ class Login extends Common {
             $data['city'] = $decryptedData['city'];
             $data['country'] = $decryptedData['country'];
             $data['province'] = $decryptedData['province'];
-            $data['status'] = 1;
+            $data['status'] = 0;
             $data['create_time'] = time();
             $data['last_login_time'] = time();
             Db::table('mp_user')->insert($data);
