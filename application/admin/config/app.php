@@ -10,7 +10,7 @@ return array(
     'layout_on'     =>  true,
     'layout_name'   =>  'layout',
     'page'   =>  1,
-    'perpage'   =>  2,
+    'perpage'   =>  5,
 
     'login_key' => 'jiang',
     'app_trace' => true,

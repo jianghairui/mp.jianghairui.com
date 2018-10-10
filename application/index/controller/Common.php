@@ -18,6 +18,7 @@ class Common extends Controller {
             'openid' => '',
             'session_key' => ''
         ];
+        $this->domain = 'https://mp.jianghairui.com/';
         $this->mp_config = [
             'app_id' => 'wx0d6f8a78265b1229',
             'secret' => 'b7cfdce371e0c100e7fc1d482933d7f5',
@@ -55,6 +56,23 @@ class Common extends Controller {
             }
         }
 
+    }
+
+    protected function checkUserAuth() {
+        $user = Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->find();
+        if($user) {
+            return true;
+        }else {
+            throw new HttpResponseException(ajax('用户未授权',16));
+        }
+    }
+
+    protected function checkRealnameAuth() {
+        $user = Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->find();
+        if(!$user || in_array($user['status'],[0,-1,-2])) {
+            throw new HttpResponseException(ajax('用户未认证',20));
+        }
+        return true;
     }
 
     protected function checkPost($postArray) {
@@ -113,25 +131,16 @@ class Common extends Controller {
         return array('error'=>0,'data'=>$filepath);
     }
 
-    protected function multi_upload() {
-        foreach ($_FILES as $k=>$v) {
-            if($v['name'] == '') {
-                unset($_FILES[$k]);
-            }else {
-                if($this->checkfile($k) !== true) {
-                    return array('error'=>1,'msg'=>$this->checkfile($k));
-                }
-            }
-        }
+    protected function multi_upload($topath = 'static/uploads/') {
         $arr = array();
-        if(count($arr) > 9) {
-            return array('error'=>1,'msg'=>'图片不可超过9张');
-        }
         foreach ($_FILES as $k=>$v) {
+            if($this->checkfile($k) !== true) {
+                return array('error'=>1,'msg'=>$this->checkfile($k));
+            }
             $filename_array = explode('.',$_FILES[$k]['name']);
             $ext = array_pop($filename_array);
 
-            $path =  'static/rupload/' . date('Y-m-d');
+            $path =  $topath . date('Y-m-d');
             is_dir($path) or mkdir($path,0755,true);
             //转移临时文件
             $newname = create_unique_number() . '.' . $ext;

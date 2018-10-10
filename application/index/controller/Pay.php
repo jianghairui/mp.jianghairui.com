@@ -13,13 +13,23 @@ use think\Exception;
 class Pay extends Common {
 
     public function pay() {
+
+        $val['order_sn'] = input('post.order_sn');
+        $this->checkPost($val);
+        $map[] = ['order_sn','=',$val['order_sn']];
+        $map[] = ['pay_status','=',0];
+        $exist = Db::table('mp_req')->where($map)->find();
+        if(!$exist || $exist['f_openid'] != $this->myinfo['openid']) {
+            return ajax('订单不存在',21);
+        }
+
         $app = Factory::payment($this->mp_config);
         try {
             $result = $app->order->unify([
-                'body' => '近帮需求小程序支付',
+                'body' => $exist['title'],
                 'out_trade_no' => time(),
-                'total_fee' => 1,
-                'notify_url' => 'https://mp.jianghairui.com/index/pay/notify',
+                'total_fee' => floatval($exist['real_price']) * 100,
+                'notify_url' => $this->domain . 'index/pay/notify',
                 'trade_type' => 'JSAPI',
                 'openid' => $this->myinfo['openid'],
             ]);

@@ -2,9 +2,207 @@
 namespace app\index\controller;
 use EasyWeChat\Factory;
 use think\Db;
+use think\Exception;
 
 class Index extends Common
 {
+
+    //判断用户是否实名认证
+    public function ifrealnameAuth() {
+        $user = Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->find();
+        if(!$user || in_array($user['status'],[0,-1,-2])) {
+            return ajax('用户未认证',20);
+        }
+        if($user['status'] == 2) {
+            return ajax('您的信誉太低',18);
+        }
+        if($user['status'] == 3) {
+            return ajax('已进入黑名单',19);
+        }
+        return ajax('已认证',1);
+    }
+    //获取个人信息
+    public function getMyinfo() {
+        $where[] = ['u.openid','=',$this->myinfo['openid']];
+        try {
+            $info = Db::table('mp_user')->alias('u')
+                ->join('mp_userinfo i','u.openid=i.openid','left')
+                ->where($where)
+                ->field('u.*,i.job,i.resume,i.career,i.identity_num,i.identity_pic')
+                ->find();
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        if($info) {
+            return ajax($info,1);
+        }else {
+            return ajax([],16);
+        }
+    }
+    //实名认证
+    public function realnameAuth() {
+        $realname = input('post.realname');
+        $tel = input('post.tel');
+        $val['identity_num'] = input('post.identity_num');
+        $val['openid'] = $this->myinfo['openid'];
+        $this->checkPost($val);
+
+        if(!$realname) {
+            return ajax([],-2);
+        }
+
+        if(!input_limit($realname,30)) {
+            return ajax('姓名字数太多',15);
+        }
+
+        if(!isCreditNo_simple($val['identity_num'])) {
+            return ajax('invalid identity_num',13);
+        }
+
+        if(!$tel || !is_tel($tel)) {
+            return ajax('invalid tel',14);
+        }
+
+        $user = Db::table('mp_user')->where('openid','=',$val['openid'])->find();
+        if(!$user) {
+            return ajax([],16);
+        }
+
+        if($user['status'] != 0 && $user['status'] != -2) {
+            return ajax('当前状态无法认证',17);
+        }
+
+        foreach ($_FILES as $k=>$v) {
+            if($v['name'] == '') {
+                unset($_FILES[$k]);
+            }
+        }
+        if(count($_FILES) != 3) {
+            return ajax('必须上传三张图片',9);
+        }
+        $info = $this->multi_upload('static/uploads/identity/');
+        if($info['error'] === 0) {
+            $val['identity_pic'] = serialize($info['data']);
+        }else {
+            return ajax($info['msg'],9);
+        }
+
+        $exist = Db::table('mp_userinfo')->where('openid','=',$val['openid'])->find();
+
+        if($exist) {
+            try {
+                Db::table('mp_userinfo')->where('openid','=',$val['openid'])->update($val);
+
+            }catch (\Exception $e) {
+                foreach ($info['data'] as $v) {
+                    @unlink($v);
+                }
+                return ajax($e->getMessage(),-1);
+            }
+            $delpics = unserialize($exist['identity_pic']);
+            foreach ($delpics as $v) {
+                @unlink($v);
+            }
+        }else {
+            try {
+                Db::table('mp_userinfo')->insert($val);
+            }catch (\Exception $e) {
+                foreach ($info['data'] as $v) {
+                    @unlink($v);
+                }
+                return ajax($e->getMessage(),-1);
+            }
+        }
+
+        try {
+            Db::table('mp_user')->where('openid','=',$val['openid'])->update(['status'=>-1,'realname'=>$realname,'tel'=>$tel]);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax([],1);
+    }
+    //完善个人信息
+    public function completeInfo() {
+
+        $val['nickname'] = input('post.nickname');
+        $val['gender'] = input('post.gender');
+        $val['city'] = input('post.city');
+
+        $val['job'] = input('post.job');
+        $val['resume'] = input('post.resume');
+        $val['career'] = input('post.career');
+        $this->checkPost($val);
+        $this->checkUserAuth();
+
+        if(!input_limit($val['nickname'],30)) {
+            return ajax('昵称不超过30字',15);
+        }
+        if(!input_limit($val['resume'],200)) {
+            return ajax('简历不超过200字',15);
+        }
+        if(!input_limit($val['career'],500)) {
+            return ajax('工作经历不超过500字',15);
+        }
+
+        try {
+            Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->update([
+                'nickname' => $val['nickname'],
+                'gender' => $val['gender'],
+                'city' => $val['city'],
+            ]);
+        } catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+
+        try {
+            Db::table('mp_userinfo')->where('openid','=',$this->myinfo['openid'])->update([
+                'job' => $val['job'],
+                'resume' => $val['resume'],
+                'career' => $val['career'],
+            ]);
+        } catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+
+        return ajax([]);
+
+    }
+
+
+    public function myApply() {
+
+    }
+
+    public function myRelease() {
+
+    }
+
+    public function myChoice() {
+
+    }
+
+    public function myAccount() {
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     public function setcache() {
         mredis()->set('arr',array('username'=>'Viki','sex'=>0),30);

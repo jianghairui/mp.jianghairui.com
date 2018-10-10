@@ -18,6 +18,7 @@ class Login extends Common {
         $code = input('post.code');
         $this->checkPost(['code'=>$code]);
         $app = Factory::miniProgram($this->mp_config);
+
         $info = $app->auth->session($code);
 
         if(isset($info['errcode']) && $info['errcode'] !== 0) {
@@ -37,8 +38,8 @@ class Login extends Common {
         $json['third_session'] = $third_session;
         return ajax($json);
     }
-    //小程序授权
-    public function auth() {
+    //小程序用户授权
+    public function userAuth() {
         $iv = input('post.iv');
         $encryptData = input('post.encryptData');
         $this->checkPost([
@@ -55,6 +56,11 @@ class Login extends Common {
             return ajax($e->getMessage(),4);
         }
 
+        $exist = Db::table('mp_user')->where('openid','=',$decryptedData['openId'])->find();
+        if($exist) {
+            return ajax('授权成功',1);
+        }
+
         try {
             $data['nickname'] = $decryptedData['nickName'];
             $data['openid'] = $decryptedData['openId'];
@@ -65,16 +71,12 @@ class Login extends Common {
             $data['province'] = $decryptedData['province'];
             $data['status'] = 1;
             $data['create_time'] = time();
-            $exist = Db::table('mp_user')->where('openid',$data['openid'])->find();
-            if(!$exist) {
-                Db::table('mp_user')->insert($data);
-            }else {
-                Db::table('mp_user')->where('openid',$data['openid'])->update($data);
-            }
+            $data['last_login_time'] = time();
+            Db::table('mp_user')->insert($data);
         }catch (\Exception $e) {
             return ajax($e->getMessage(),4);
         }
-        return ajax('授权成功');
+        return ajax('授权成功',1);
     }
 
 

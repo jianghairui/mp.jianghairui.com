@@ -40,11 +40,11 @@
     <?php } ?>
 
     <p class="detail"></p>
-    <p class="jump">
+    <p class="jump" style="color:#555555">
     您可以：
     <a href="javascript:;" onclick="history.go(-1)" class="c-primary">&lt; 返回上一页</a>
     <span class="ml-20">|</span>
-        &nbsp;&nbsp;&nbsp;&nbsp;页面自动 <a id="href" href="<?php echo($url);?>">跳转</a> 等待时间： <b id="wait"><?php echo($wait);?></b>
+        &nbsp;&nbsp;&nbsp;&nbsp;页面自动 <a id="href" href="<?php echo($url);?>" class="c-primary">跳转</a> 等待时间： <b id="wait"><?php echo($wait);?></b>
     </p>
 
 </section>

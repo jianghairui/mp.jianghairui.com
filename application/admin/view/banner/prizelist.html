@@ -15,10 +15,10 @@
                 </select>
 		    </span>
             日期范围：
-            <input type="text" onfocus="WdatePicker({ maxDate:'#F{ $dp.$D(\'logmax\')||\'%y-%M-%d\' }' })" id="logmin" class="input-text Wdate" style="width:120px;">
+            <input type="text" onfocus="WdatePicker({ maxDate:'#F{ $dp.$D(\'logmax\') }' })" id="logmin" value="{$Think.get.logmin}" class="input-text Wdate" style="width:120px;">
             -
-            <input type="text" onfocus="WdatePicker({ minDate:'#F{ $dp.$D(\'logmin\') }',maxDate:'%y-%M-%d' })" id="logmax" class="input-text Wdate" style="width:120px;">
-            <input type="text" name="search" value="{$Think.get.search}" id="search" placeholder=" 资讯名称" style="width:250px" class="input-text">
+            <input type="text" onfocus="WdatePicker({ minDate:'#F{ $dp.$D(\'logmin\') }' })" id="logmax" value="{$Think.get.logmax}" class="input-text Wdate" style="width:120px;">
+            <input type="text" name="search" value="{$Think.get.search}" id="search" placeholder=" 奖品名称" style="width:250px" class="input-text">
             <button name="" id="search-btn" class="btn btn-success" type="button"><i class="Hui-iconfont">&#xe665;</i> 查找</button>
         </div>
     </section>
@@ -37,6 +37,7 @@
                 <th width="60">排序</th>
                 <th width="200">图片</th>
                 <th>奖品描述</th>
+                <th width="120">活动时间</th>
                 <th width="60">奖品数量</th>
                 <th width="60">中奖概率</th>
                 <th width="60">状态</th>
@@ -54,6 +55,7 @@
                     <div id="cover" class="thumbnail" style="background-image: url('/{$li.cover}')"></div>
                 </td>
                 <td class="text-c">{$li.title}</td>
+                <td class="text-c">{$li.start_time|date='Y-m-d H:i:s'}</td>
                 <td class="text-c">{$li.num}</td>
                 <td class="text-c">{$li.probability}%</td>
                 <td class="td-status">
@@ -95,7 +97,7 @@
             </tr>
             {/foreach}
             <tr class="text-r">
-                <td colspan="8" id="page">
+                <td colspan="9" id="page">
 
                 </td>
             </tr>
