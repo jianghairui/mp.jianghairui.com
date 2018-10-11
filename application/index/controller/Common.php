@@ -60,7 +60,7 @@ class Common extends Controller {
 
     protected function checkUserAuth() {
         $user = Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->find();
-        if($user) {
+        if($user['nickname']) {
             return true;
         }else {
             throw new HttpResponseException(ajax('用户未授权',16));
@@ -69,9 +69,13 @@ class Common extends Controller {
 
     protected function checkRealnameAuth() {
         $user = Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->find();
-        if(!$user || in_array($user['status'],[0,-1,-2])) {
+        if($user['status'] == 2) {
+            throw new HttpResponseException(ajax('已进入黑名单',19));
+        }
+        if(in_array($user['status'],[0,-1,-2])) {
             throw new HttpResponseException(ajax('用户未认证',20));
         }
+
         return true;
     }
 
@@ -93,6 +97,27 @@ class Common extends Controller {
         libxml_disable_entity_loader(true);
         $values = json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
         return $values;
+    }
+
+    /**
+     * 工具方法，将一个数组转成 xml 格式
+     */
+    protected static function array2xml($arr) {
+        if(!is_array($arr) || count($arr) <= 0) {
+            return false;
+        }
+
+        $xml = "<xml>";
+        foreach ($arr as $key=>$val)
+        {
+            if (is_numeric($val)){
+                $xml.="<".$key.">".$val."</".$key.">";
+            }else{
+                $xml.="<".$key."><![CDATA[".$val."]]></".$key.">";
+            }
+        }
+        $xml.="</xml>";
+        return $xml;
     }
 
     //检验地区是否开放

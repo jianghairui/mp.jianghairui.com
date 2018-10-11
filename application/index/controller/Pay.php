@@ -15,6 +15,7 @@ class Pay extends Common {
     public function pay() {
 
         $val['order_sn'] = input('post.order_sn');
+        $val['order_sn'] = 'R153898403430036900';
         $this->checkPost($val);
         $map[] = ['order_sn','=',$val['order_sn']];
         $map[] = ['pay_status','=',0];
@@ -27,8 +28,10 @@ class Pay extends Common {
         try {
             $result = $app->order->unify([
                 'body' => $exist['title'],
-                'out_trade_no' => time(),
-                'total_fee' => floatval($exist['real_price']) * 100,
+                'out_trade_no' => $val['order_sn'],
+//                'total_fee' => floatval($exist['real_price']) * 100,
+                'total_fee' => 1,
+
                 'notify_url' => $this->domain . 'index/pay/notify',
                 'trade_type' => 'JSAPI',
                 'openid' => $this->myinfo['openid'],
@@ -53,26 +56,36 @@ class Pay extends Common {
         }
         return ajax($result);
     }
-
+    //支付回调接口
     public function notify() {
+        //将返回的XML格式的参数转换成php数组格式
+        $xml = file_get_contents('php://input');
+        $data = $this->xml2array($xml);
 
-        $xml = file_get_contents("php://input");
-        $result = $this->xml2array($xml);
-        if($result['return_code'] != 'SUCCESS' || $result['result_code'] != 'SUCCESS') {
-            $file= ROOT_PATH . '/notify.txt';
-            $text='记录时间 ---' . date('Y-m-d H:i:s') . "\n" . var_export($result,true) . '---END---' . "\n";
-            if(false !== fopen($file,'a+')){
-                file_put_contents($file,$text,FILE_APPEND);
-            }else{
-                echo '创建失败';
+        if($data['return_code'] == 'SUCCESS' && $data['result_code'] == 'SUCCESS') {
+            $map = [
+                ['order_sn','=',$data['out_trade_no']],
+                ['pay_status','=',0],
+            ];
+            $exist = Db::table('mp_req')->where($map)->find();
+            if($exist) {
+                $update_data = [
+                    'pay_status' => 1,
+                    'trans_id' => $data['transaction_id'],
+                    'pay_time' => time(),
+                ];
+                Db::table('mp_req')->where('order_sn','=',$data['out_trade_no'])->update($update_data);
             }
+
+        }else if($data['return_code'] == 'SUCCESS' && $data['result_code'] != 'SUCCESS'){
+            $data['out_trade_no'] = '支付失败';
         }
-        Db::table('mp_paylog')->insert(
-            ['detail' => json_encode($result),'type'=>1]
-        );
+
+        $order_sn = isset($data['out_trade_no']) ? $data['out_trade_no'] : '';
+        Db::table('mp_paylog')->insert(['order_sn'=>$order_sn,'detail'=>json_encode($data)]);
+        echo $this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']);
+
     }
-
-
     //生成签名
     private function getSign($arr)
     {

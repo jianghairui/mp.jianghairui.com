@@ -29,7 +29,22 @@ class Login extends Common {
 
         $exist = Db::table('mp_user')->where('openid',$ret['openid'])->find();
         if($exist) {
-            Db::table('mp_user')->where('openid',$ret['openid'])->update(['last_login_time'=>time()]);
+            try {
+                Db::table('mp_user')->where('openid',$ret['openid'])->update(['last_login_time'=>time()]);
+            }catch (\Exception $e) {
+                return ajax($e->getMessage(),-1);
+            }
+        }else {
+            $insert = [
+                'create_time'=>time(),
+                'last_login_time'=>time(),
+                'openid'=>$ret['openid'],
+            ];
+            try {
+                Db::table('mp_user')->insert($insert);
+            }catch (\Exception $e) {
+                return ajax($e->getMessage(),-1);
+            }
         }
         //把3rd_session存入redis
         $third_session = exec('/usr/bin/head -n 80 /dev/urandom | tr -dc A-Za-z0-9 | head -c 168');
@@ -58,22 +73,18 @@ class Login extends Common {
         }
 
         $exist = Db::table('mp_user')->where('openid','=',$decryptedData['openId'])->find();
-        if($exist) {
+        if($exist['avatar']) {
             return ajax('已授权',1);
         }
 
         try {
             $data['nickname'] = $decryptedData['nickName'];
-            $data['openid'] = $decryptedData['openId'];
             $data['avatar'] = $decryptedData['avatarUrl'];
             $data['gender'] = $decryptedData['gender'];
             $data['city'] = $decryptedData['city'];
             $data['country'] = $decryptedData['country'];
             $data['province'] = $decryptedData['province'];
-            $data['status'] = 0;
-            $data['create_time'] = time();
-            $data['last_login_time'] = time();
-            Db::table('mp_user')->insert($data);
+            Db::table('mp_user')->where('openid','=',$decryptedData['openId'])->update($data);
         }catch (\Exception $e) {
             return ajax($e->getMessage(),4);
         }

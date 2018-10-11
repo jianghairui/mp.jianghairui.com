@@ -6,23 +6,23 @@ use think\Exception;
 
 class Index extends Common
 {
-
-    //判断用户是否实名认证
+    //判断用户状态
     public function ifrealnameAuth() {
         $user = Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->find();
-        if(!$user || in_array($user['status'],[0,-1,-2])) {
+        if(!$user['nickname'] || in_array($user['status'],[0,-1,-2])) {
             return ajax('用户未认证',20);
         }
         if($user['status'] == 2) {
-            return ajax('您的信誉太低',18);
-        }
-        if($user['status'] == 3) {
             return ajax('已进入黑名单',19);
         }
         return ajax('已认证',1);
     }
     //获取个人信息
     public function getMyinfo() {
+        $user = Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->find();
+        if(!$user['nickname']) {
+            return ajax([],16);
+        }
         $where[] = ['u.openid','=',$this->myinfo['openid']];
         try {
             $info = Db::table('mp_user')->alias('u')
@@ -33,11 +33,7 @@ class Index extends Common
         }catch (\Exception $e) {
             return ajax($e->getMessage(),-1);
         }
-        if($info) {
-            return ajax($info,1);
-        }else {
-            return ajax([],16);
-        }
+        return ajax($info,1);
     }
     //实名认证
     public function realnameAuth() {
@@ -64,7 +60,7 @@ class Index extends Common
         }
 
         $user = Db::table('mp_user')->where('openid','=',$val['openid'])->find();
-        if(!$user) {
+        if(!$user['nickname']) {
             return ajax([],16);
         }
 

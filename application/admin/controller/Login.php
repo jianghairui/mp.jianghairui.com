@@ -15,7 +15,6 @@ class Login extends Common {
             $this->redirect('Index/index');
             exit();
         }
-
         $cookie = cookie('mp_password');
         if(isset($cookie) && $cookie != '') {
             $data['mp_username'] = cookie('mp_username');

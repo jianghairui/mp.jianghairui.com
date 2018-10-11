@@ -66,6 +66,10 @@
 <script type="text/javascript" src="/lib/jquery/1.9.1/jquery.min.js"></script>
 <script type="text/javascript" src="/static/h-ui/js/H-ui.min.js"></script>
 <script>
+
+    if (window != top)
+    top.location.href = '{:url("Login/index")}';
+
     function Code() {
         document.getElementById("img").src="{:url('Login/vcode')}?"+Math.random();
     }

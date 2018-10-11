@@ -149,7 +149,6 @@ class Api extends Common {
         }
 
         $map[] = ['id','=',$val['rid']];
-        $map[] = ['pay_status','=',1];
         $map[] = ['status','=',1];
 
         $req_exist = Db::table('mp_req')->where($map)->find();
