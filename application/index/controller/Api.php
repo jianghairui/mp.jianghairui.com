@@ -39,7 +39,7 @@ class Api extends Common {
         $data['list'] = $this->sortMerge($catelist,0);
         return ajax($data);
     }
-
+    //获取系统参数
     public function getSettings() {
         $info = Db::table('mp_setting')->find();
         return ajax($info,1);
@@ -178,6 +178,102 @@ class Api extends Common {
         }
         return ajax([],1);
     }
+    //获取轮播图列表
+    public function slideShow() {
+        $where[] = ['status','=',1];
+        $list = Db::table('mp_slideshow')->where($where)->order(['sort'=>'ASC'])->select();
+        return ajax($list);
+    }
+    //获取奖品列表,未到开奖时间的
+    public function getPrizelist() {
+        $where[] = ['status','=',1];
+        $where[] = ['open_time','<',time()];
+        $openid = $this->myinfo['openid'];
+        $myjoin = Db::table('mp_prize_actor')->where('openid','=',$openid)->column('prize_id');
+        $list = Db::table('mp_prize')->where($where)->field('id,title,cover')->order(['sort'=>'ASC'])->select();
+        foreach ($list as &$v) {
+            if(in_array($v['id'],$myjoin)) {
+                $v['join'] = 1;
+            }else {
+                $v['join'] = 0;
+            }
+        }
+        return ajax($list);
+    }
+    //获取奖品信息
+    public function getPrizeinfo() {
+        $val['prize_id'] = input('post.prize_id');
+        $this->checkPost($val);
+
+        $map[] = ['id','=',$val['prize_id']];
+        $exist = Db::table('mp_prize')->where($map)->field('id,title,cover,start_time,end_time,open_time,status')->find();
+        if(!$exist) {
+            return ajax([],-3);
+        }
+
+        $myjoin = Db::table('mp_prize_actor')->where('openid','=',$this->myinfo['openid'])->column('prize_id');
+        if(in_array($val['prize_id'],$myjoin)) {
+            $exist['join'] = 1;
+        }
+        return ajax($exist,1);
+    }
+    //抽奖
+    public function luckyDraw() {
+        $openid = $this->myinfo['openid'];
+        $val['tel'] = input('post.tel');
+        $val['address'] = input('post.address');
+        $val['prize_id'] = input('post.prize_id');
+        $this->checkPost($val);
+
+        if(!is_tel($val['tel'])) {
+            return ajax([],14);
+        }
+
+        $myjoin = Db::table('mp_prize_actor')->where('openid','=',$openid)->column('prize_id');
+
+        $map[] = ['id','=',$val['prize_id']];
+        $exist = Db::table('mp_prize')->where($map)->find();
+        if(!$exist) {
+            return ajax([],-3);
+        }
+        if(in_array($val['prize_id'],$myjoin)) {
+            return ajax([],26);
+        }
+        if(time() < $exist['start_time']) {
+            return ajax([],27);
+        }
+        if(time() >= $exist['end_time'] || $exist['status'] != 1) {
+            return ajax([],28);
+        }
+
+        $times = Db::table('mp_user')->where('openid','=',$openid)->value('times');
+        if($times <= 0) {
+            return ajax([],25);
+        }
+
+        Db::startTrans();
+        try {
+            $val['openid'] = $this->myinfo['openid'];
+            $val['create_time'] = time();
+            Db::table('mp_prize_actor')->insert($val);
+            $res = Db::table('mp_user')->where('openid','=',$openid)->setDec('times');
+            Db::commit();
+        }catch (\Exception $e) {
+            Db::rollback();
+            return ajax($e->getMessage(),-1);
+        }
+
+        if($res) {
+            return ajax([],1);
+        }else {
+            return ajax('操作失败',-1);
+        }
+
+    }
+
+
+
+
 
 
 

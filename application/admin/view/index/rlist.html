@@ -244,7 +244,7 @@
                     if(data.code == 1) {
                         $(obj).parents("tr").find(".td-manage").prepend('<a style="text-decoration:none" onClick="req_show(this,'+id+')" href="javascript:;" title="发布"><i class="Hui-iconfont">&#xe603;</i></a>');
                         $(obj).remove();
-                        layer.msg('已隐藏!',{icon: 5,time:1000});
+                        layer.msg('已隐藏!',{icon: 1,time:1000});
                     }else {
                         layer.msg(data.data,{icon:2,time:1000})
                     }
@@ -270,7 +270,7 @@
                     if(data.code == 1) {
                         $(obj).parents("tr").find(".td-manage").prepend('<a style="text-decoration:none" onClick="req_hide(this,'+id+')" href="javascript:;" title="隐藏"><i class="Hui-iconfont">&#xe6de;</i></a>');
                         $(obj).remove();
-                        layer.msg('已发布!',{icon: 6,time:1000});
+                        layer.msg('已发布!',{icon: 1,time:1000});
                     }else {
                         layer.msg(data.data,{icon:2,time:1000})
                     }

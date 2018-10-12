@@ -178,11 +178,11 @@ class Banner extends Common {
         }
 
         if($param['logmin']) {
-            $where[] = ['start_time','>=',strtotime(date('Y-m-d',strtotime($param['logmin'])))];
+            $where[] = ['start_time','>=',strtotime(date('Y-m-d 00:00:00',strtotime($param['logmin'])))];
         }
 
         if($param['logmax']) {
-            $where[] = ['start_time','<=',strtotime(date('Y-m-d',strtotime($param['logmax'])))];
+            $where[] = ['start_time','<=',strtotime(date('Y-m-d 23:59:59',strtotime($param['logmax'])))];
         }
 
         if($param['search']) {
@@ -193,7 +193,7 @@ class Banner extends Common {
         $page['count'] = $count;
         $page['curr'] = $curr_page;
         $page['totalPage'] = ceil($count/$perpage);
-        $list = Db::table('mp_prize')->where($where)->order(['sort'=>'ASC'])->limit(($curr_page - 1)*$perpage,$perpage)->select();
+        $list = Db::table('mp_prize')->where($where)->order(['id'=>'DESC'])->limit(($curr_page - 1)*$perpage,$perpage)->select();
         $this->assign('list',$list);
         $this->assign('page',$page);
         return $this->fetch();

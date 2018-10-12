@@ -244,11 +244,11 @@ class Index extends Common
         }
 
         if($param['logmin']) {
-            $where[] = ['create_time','>=',strtotime(date('Y-m-d',strtotime($param['logmin'])))];
+            $where[] = ['create_time','>=',strtotime(date('Y-m-d 00:00:00',strtotime($param['logmin'])))];
         }
 
         if($param['logmax']) {
-            $where[] = ['create_time','<=',strtotime(date('Y-m-d',strtotime($param['logmax'])))];
+            $where[] = ['create_time','<=',strtotime(date('Y-m-d 23:59:59',strtotime($param['logmax'])))];
         }
 
         if($param['search']) {
@@ -259,7 +259,7 @@ class Index extends Common
         $page['count'] = $count;
         $page['curr'] = $curr_page;
         $page['totalPage'] = ceil($count/$perpage);
-        $list = Db::table('mp_req')->where($where)->limit(($curr_page - 1)*$perpage,$perpage)->select();
+        $list = Db::table('mp_req')->where($where)->order(['id'=>'DESC'])->limit(($curr_page - 1)*$perpage,$perpage)->select();
         $this->assign('list',$list);
         $this->assign('page',$page);
         $this->assign('status',$param['status']);

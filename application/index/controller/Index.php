@@ -220,10 +220,10 @@ class Index extends Common
 
     }
 
-    public function postFormid() {
-        $data['desc'] = input('post.desc');
+    public function collectFormid() {
+//        $data['desc'] = input('post.desc');
         $data['formid'] = input('post.formid');
-        $res = Db::table('formid')->insert($data);
+        $res = Db::table('mp_formid')->insert($data);
         if($res) {
             return ajax($data);
         }else {
@@ -245,48 +245,7 @@ class Index extends Common
     }
 
 
-//发送消息模板
-    public function sendTpl() {
-//        die(APP_PATH);
 
-//        $data = input('post.');
-//        $code = $data['code'];
-        $this->mp_config = [
-            'app_id' => 'wx0d6f8a78265b1229',
-            'secret' => 'b7cfdce371e0c100e7fc1d482933d7f5',
-
-            'mch_id'             => '1514516351',
-            'key'                => 'LDB15083727504163447056815279712',   // API 密钥
-
-            // 如需使用敏感接口（如退款、发送红包等）需要配置 API 证书路径(登录商户平台下载 API 证书)
-            'cert_path'          =>  '/var/www/mp.jianghairui.com/public/cert/cert.pem', // XXX: 绝对路径！！！！
-            'key_path'           =>  '/var/www/mp.jianghairui.com/public/cert/key.pem',      // XXX: 绝对路径！！！！
-
-            // 下面为可选项,指定 API 调用返回结果的类型：array(default)/collection/object/raw/自定义类名
-            'response_type' => 'array',
-            'log' => [
-                'level' => 'debug',
-                'file' => APP_PATH . '/wechat.log',
-            ],
-        ];
-        $app = Factory::miniProgram($this->mp_config);
-        die();
-//        $app = Factory::miniProgram($this->mp_config);
-//
-//        $result = $app->template_message->send([
-//            'touser' => 'openid',
-//            'template_id' => '80gz0yz1GdDlMeFstTf2GxTSMRbEgBtM1nIpYu4F17U',
-//            'page' => 'index',
-//            'form_id' => '1537431978893',
-//            'data' => [
-//                'keyword1' => date('Y-m-d H:i:s'),
-//                'keyword2' => '吉圣客汉堡',
-//                'keyword3' => '18.00',
-//                'keyword4' => '1008611',
-//            ]
-//        ]);
-//        halt($result);
-    }
 
 
 

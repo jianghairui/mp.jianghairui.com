@@ -57,10 +57,10 @@ class Login extends Common {
     public function userAuth() {
 
         $iv = input('post.iv');
-        $encryptData = input('post.encryptData');
+        $encryptData = input('post.encryptedData');
         $this->checkPost([
             'iv' => $iv,
-            'encryptData' => $encryptData
+            'encryptedData' => $encryptData
         ]);
         if(!$iv || !$encryptData) {
             return ajax([],-2);
@@ -89,6 +89,33 @@ class Login extends Common {
             return ajax($e->getMessage(),4);
         }
         return ajax('授权成功',1);
+    }
+
+    public function getPhoneNumber() {
+
+        $iv = input('post.iv');
+        $encryptData = input('post.encryptedData');
+        $this->checkPost([
+            'iv' => $iv,
+            'encryptedData' => $encryptData
+        ]);
+        if(!$iv || !$encryptData) {
+            return ajax([],-2);
+        }
+        $app = Factory::miniProgram($this->mp_config);
+        try {
+            $decryptedData = $app->encryptor->decryptData($this->myinfo['session_key'], $iv, $encryptData);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),24);
+        }
+
+        try {
+            $data['tel'] = $decryptedData['phoneNumber'];
+            Db::table('mp_user')->where('openid','=',$this->myinfo['openid'])->update($data);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),24);
+        }
+        return ajax($decryptedData,1);
     }
 
 
