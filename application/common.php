@@ -245,6 +245,6 @@ function randColor($image) {
     return imagecolorallocate($image,mt_rand(0,255),mt_rand(0,255),mt_rand(0,255));
 }
 
-function mredis() {
-    return \my\MyRedis::getInstance();
+function mredis($config = []) {
+    return \my\MyRedis::getInstance($config);
 }

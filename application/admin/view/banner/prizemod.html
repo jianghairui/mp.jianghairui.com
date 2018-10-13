@@ -64,19 +64,19 @@
         <div class="row cl">
             <label class="form-label col-xs-4 col-sm-2">抽奖开始时间：</label>
             <div class="formControls col-xs-8 col-sm-9">
-                <input type="text" onfocus="WdatePicker({ dateFmt:'yyyy-MM-dd HH:mm:ss',maxDate:'#F{ $dp.$D(\'end_time\')||\'\'}' })" id="start_time" name="start_time" value="{$info.start_time|date='Y-m-d H:i:s'}" class="input-text Wdate">
+                <input type="text" onfocus="WdatePicker({ dateFmt:'yyyy-MM-dd HH:00:00',maxDate:'#F{ $dp.$D(\'end_time\')||\'\'}' })" id="start_time" name="start_time" value="{$info.start_time|date='Y-m-d H:i:s'}" class="input-text Wdate">
             </div>
         </div>
         <div class="row cl">
             <label class="form-label col-xs-4 col-sm-2">抽奖结束时间：</label>
             <div class="formControls col-xs-8 col-sm-9">
-                <input type="text" onfocus="WdatePicker({ dateFmt:'yyyy-MM-dd HH:mm:ss',minDate:'#F{ $dp.$D(\'start_time\')}' })" id="end_time" name="end_time" value="{$info.end_time|date='Y-m-d H:i:s'}" class="input-text Wdate">
+                <input type="text" onfocus="WdatePicker({ dateFmt:'yyyy-MM-dd HH:00:00',minDate:'#F{ $dp.$D(\'start_time\')}' })" id="end_time" name="end_time" value="{$info.end_time|date='Y-m-d H:i:s'}" class="input-text Wdate">
             </div>
         </div>
         <div class="row cl">
             <label class="form-label col-xs-4 col-sm-2">开奖时间：</label>
             <div class="formControls col-xs-8 col-sm-9">
-                <input type="text" onfocus="WdatePicker({ dateFmt:'yyyy-MM-dd HH:mm:ss',minDate:'#F{ $dp.$D(\'end_time\')}' })" id="open_time" name="open_time" value="{$info.open_time|date='Y-m-d H:i:s'}" class="input-text Wdate">
+                <input type="text" onfocus="WdatePicker({ dateFmt:'yyyy-MM-dd HH:00:00',minDate:'#F{ $dp.$D(\'end_time\')}' })" id="open_time" name="open_time" value="{$info.open_time|date='Y-m-d H:i:s'}" class="input-text Wdate">
             </div>
         </div>
         <div class="row cl">

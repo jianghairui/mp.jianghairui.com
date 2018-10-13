@@ -125,11 +125,11 @@ class Member extends Common {
             $where[] = ['u.nickname|u.tel','like',"%{$param['search']}%"];
         }
 
-        $count = Db::table('mp_prize_winner')->where($where)->count();
+        $count = Db::table('mp_prize_actor')->where($where)->count();
         $page['count'] = $count;
         $page['curr'] = $curr_page;
         $page['totalPage'] = ceil($count/$perpage);
-        $list = Db::table('mp_prize_winner')->alias('w')
+        $list = Db::table('mp_prize_actor')->alias('w')
             ->join("mp_user u","w.openid=u.openid",'left')
             ->join("mp_prize p","w.prize_id=p.id",'left')
             ->where($where)

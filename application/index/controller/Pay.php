@@ -15,7 +15,7 @@ class Pay extends Common {
     public function pay() {
 
         $val['order_sn'] = input('post.order_sn');
-        $val['order_sn'] = 'R153916990348509600';
+//        $val['order_sn'] = 'R153916990348509600';
         $this->checkPost($val);
         $map[] = ['order_sn','=',$val['order_sn']];
         $map[] = ['pay_status','=',0];
@@ -56,6 +56,37 @@ class Pay extends Common {
         }
         return ajax($result);
     }
+
+
+    //发送消息模板
+    public function sendTpl() {
+        $val['prepay_id'] = input('post.prepay_id');
+        $val['order_sn'] = input('post.order_sn');
+        $this->checkPost($val);
+        $map[] = ['order_sn','=',$val['order_sn']];
+        $map[] = ['f_openid','=',$this->myinfo['openid']];
+        $order = Db::table('mp_req')->where($map)->find();
+        if(!$order) {
+            return ajax([],10);
+        }
+        $app = Factory::miniProgram($this->mp_config);
+        $result = $app->template_message->send([
+            'touser' => $this->myinfo['openid'],
+            'template_id' => 'AF7VT4VdewpEJuRYiuKOPTp8ckSZOzicfwbawOXdX5I',
+            'page' => 'index',
+            'form_id' => strval($val['prepay_id']),
+            'data' => [
+                'keyword1' => $order['title'],
+                'keyword2' => $order['real_price'],
+                'keyword3' => date('Y-m-d H:i:s'),
+                'keyword4' => $order['order_sn'],
+            ]
+        ]);
+        return ajax($result);
+    }
+
+
+
     //支付回调接口
     public function notify() {
         //将返回的XML格式的参数转换成php数组格式
@@ -85,34 +116,6 @@ class Pay extends Common {
         Db::table('mp_paylog')->insert(['order_sn'=>$order_sn,'detail'=>json_encode($data)]);
         echo $this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']);
 
-    }
-
-    //发送消息模板
-    public function sendTpl() {
-        $val['prepay_id'] = input('post.prepay_id');
-        $val['order_sn'] = input('post.order_sn');
-        $this->checkPost($val);
-        $map[] = ['order_sn','=',$val['order_sn']];
-        $map[] = ['f_openid','=',$this->myinfo['openid']];
-        $order = Db::table('mp_req')->where($map)->find();
-        if(!$order) {
-            return ajax([],10);
-        }
-        $app = Factory::miniProgram($this->mp_config);
-        $result = $app->template_message->send([
-//            'touser' => $this->myinfo['openid'],
-            'touser' => 'olIWK5R_TV5k1jCrbBOvBN5FT9Ss',
-            'template_id' => 'AF7VT4VdewpEJuRYiuKOPTp8ckSZOzicfwbawOXdX5I',
-            'page' => 'index',
-            'form_id' => strval($val['prepay_id']),
-            'data' => [
-                'keyword1' => $order['title'],
-                'keyword2' => $order['real_price'],
-                'keyword3' => date('Y-m-d H:i:s'),
-                'keyword4' => $order['order_sn'],
-            ]
-        ]);
-        return ajax($result);
     }
 
 

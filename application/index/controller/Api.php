@@ -58,6 +58,7 @@ class Api extends Common {
         $val['cate_id'] = input('post.cate_id');
         $val['end_time'] = input('post.end_time');
         $val['deadline'] = input('post.deadline');
+        $val['form_id'] = input('post.formid');
 
         $this->checkPost($val);
         $this->checkRealnameAuth();
@@ -223,6 +224,7 @@ class Api extends Common {
         $val['tel'] = input('post.tel');
         $val['address'] = input('post.address');
         $val['prize_id'] = input('post.prize_id');
+        $val['form_id'] = input('post.formid');
         $this->checkPost($val);
 
         if(!is_tel($val['tel'])) {
@@ -270,10 +272,6 @@ class Api extends Common {
         }
 
     }
-
-
-
-
 
 
 

@@ -117,6 +117,13 @@ class Index extends Common
         }
         return ajax([],1);
     }
+
+    //获取职业列表
+    public function getJobList() {
+        $where[] = ['status','=',1];
+        $list = Db::table('mp_job')->where($where)->select();
+        return ajax($list);
+    }
     //完善个人信息
     public function completeInfo() {
 
@@ -205,23 +212,30 @@ class Index extends Common
 
 
 
-    public function setcache() {
-        mredis()->set('arr',array('username'=>'Viki','sex'=>0),30);
-//        $third_session = exec('/usr/bin/head -n 80 /dev/urandom | tr -dc A-Za-z0-9 | head -c 168');
-//        halt($third_session);
-    }
 
-    public function getcache() {
-        $name = mredis()->get("QWm1MXpErOl4Icqt6W7Ac1wzAxWweNVjNJULmPujYdlG6ZI358mCO1Bsgv3QHPWgTHe7sMv6qNT89cYfM4FOS4NfkxOabtk2s7ZfntI0RsdaDR00L9m3DVmfjPrjp3kDuNbCwAox7NWrrF8ft0KjzQqJSZi1tjVKVq9z6IkU");
-        halt($name);
-    }
 
-    public function clearcache() {
 
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     public function collectFormid() {
-//        $data['desc'] = input('post.desc');
         $data['formid'] = input('post.formid');
         $res = Db::table('mp_formid')->insert($data);
         if($res) {
@@ -232,16 +246,7 @@ class Index extends Common
     }
 
     public function test() {
-        $arr = ['name'=>'Jianghairu','sex'=>1];
-        $age = $arr['age'];
-//        halt($arr['age']);
-//        die(ROOT_PATH);
-//        $myfile = fopen(ROOT_PATH . "/newfile.txt", "w") or die("Unable to open file!");
-//        $txt = "Bill Gates\n";
-//        fwrite($myfile, $txt);
-//        $txt = "Steve Jobs\n";
-//        fwrite($myfile, $txt);
-//        fclose($myfile);
+
     }
 
 
