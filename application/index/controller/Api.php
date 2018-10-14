@@ -29,10 +29,11 @@ class Api extends Common {
     {
         $condition['page'] = input('post.page',1);
         $condition['perpage'] = input('post.perpage',10);
-        $condition['city'] = input('post.city');
-        $condition['county'] = input('post.county');
         $condition['lon'] = input('post.lon');
         $condition['lat'] = input('post.lat');
+        $cityinfo = $this->getCityinfo($condition['lon'],$condition['lat']);
+        $condition['city'] = $cityinfo['city'];
+        $condition['county'] = $cityinfo['county'];
 
         $model = model('Req');
         $list = $model::sortlist($condition);
