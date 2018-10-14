@@ -24,20 +24,41 @@ class Api extends Common {
         $data['list'] = $this->sortMerge($citylist,0);
         return ajax($data);
     }
-    //获取需求列表
+    //获取需求列表(社区的按距离排序,默认本市)
     public function getRlist()
     {
         $condition['page'] = input('post.page',1);
         $condition['perpage'] = input('post.perpage',10);
         $condition['lon'] = input('post.lon');
         $condition['lat'] = input('post.lat');
-        $cityinfo = $this->getCityinfo($condition['lon'],$condition['lat']);
-        $condition['city'] = $cityinfo['city'];
-        $condition['county'] = $cityinfo['county'];
+        $condition['gender'] = input('post.gender');
+
+        $condition['city'] = input('post.city');
+        $condition['county'] = input('post.county');
 
         $model = model('Req');
         $list = $model::sortlist($condition);
         return ajax($list,1);
+    }
+    //获取需求列表(世界的,按VIP排序)
+    public function getWorldRlist() {
+        $page = input('post.page',1);
+        $perpage = input('post.perpage',10);
+        $gender = input('post.gender');
+
+        $map[] = ['r.pay_status','=',1];
+        $map[] = ['r.status','=',1];
+        if($gender) {
+            $map[] = ['u.gender','=',$gender];
+        }
+        $data['count'] = Db::table('mp_req')->alias('r')->join('mp_user u','r.f_openid=u.openid','left')->where($map)->count();
+        $data['list'] = Db::table('mp_req')->alias('r')
+            ->join('mp_user u','r.f_openid=u.openid','left')
+            ->field('r.*,u.nickname,u.avatar,u.gender,u.vip')
+            ->where($map)
+            ->order(['vip'=>'DESC','id'=>'DESC'])
+            ->limit(($page-1)*$perpage,$perpage)->select();
+        return ajax($data,1);
     }
     //获取分类列表
     public function getCatelist() {

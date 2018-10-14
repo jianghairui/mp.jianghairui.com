@@ -197,7 +197,7 @@
                         if(data.code == 1) {
                             $(obj).parents("tr").find(".td-status").html('<span class="label label-success radius">待接单</span>');
                             $(obj).parent().html('<span class="btn btn-link radius"></span>');
-                            layer.msg('已审核', {icon:6,time:1000});
+                            layer.msg('已审核', {icon:1,time:1000});
                         }else {
                             layer.msg(data.data,{icon:2,time:1000})
                         }

@@ -22,16 +22,6 @@ class Req extends Model
         $sql = "";
         $sql .= " AND re.pay_status=1 AND re.status=1";
 
-        if($condition['city']) {
-            $city = $condition['city'];
-            $sql .= " AND re.city='{$city}'";
-        }
-
-        if($condition['county']) {
-            $county = $condition['county'];
-            $sql .= " AND re.county='{$county}'";
-        }
-
         if($condition['perpage']) {
             $perpage = $condition['perpage'];
         }
@@ -47,13 +37,35 @@ class Req extends Model
         if($condition['lat']) {
             $lat = $condition['lat'];
         }
+        $cityinfo = self::getCityinfo($lon,$lat);
+        $city = $cityinfo['city'];
+        $county = $cityinfo['district'];
 
+        if($condition['city']) {
+            $sql .= " AND re.city='{$city}'";
+        }
+
+        if($condition['county']) {
+            $sql .= " AND re.county='{$county}'";
+        }
+
+        if($condition['gender']) {
+            $gender = $condition['gender'];
+            $sql .= " AND u.gender='{$gender}'";
+        }
         $res = self::query("SELECT COUNT(*) AS `count` FROM mp_req re LEFT JOIN mp_user u ON re.f_openid=u.openid WHERE 1 " .$sql);
         $data['count'] = $res[0]['count'];
         $data['list'] = self::query("SELECT *,(2 * 6378.137* ASIN(SQRT(POW(SIN(PI()*({$lon}-r.lon)/360),2)+COS(PI()*{$lat}/180)* COS(r.lat * PI()/180)*POW(SIN(PI()*({$lat}-r.lat)/360),2)))) AS juli
 FROM (SELECT re.*,u.nickname,u.avatar,u.credit,u.vip,u.gender FROM mp_req re LEFT JOIN mp_user u ON re.f_openid=u.openid WHERE 1 " .$sql. ") r ORDER BY juli ASC LIMIT {$page},{$perpage};");
         return $data;
 
+    }
+
+
+    protected static function getCityinfo($long,$lat) {
+        $info = \my\Geocoding::getAddressComponent($long,$lat);
+        $city = $info['result']['addressComponent'];
+        return $city;
     }
 
 
