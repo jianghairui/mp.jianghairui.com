@@ -12,6 +12,12 @@ use think\Exception;
 
 class Api extends Common {
 
+    //获取我的openid
+    public function getMyOpenid() {
+        $openid = $this->myinfo['openid'];
+        return ajax($openid);
+    }
+
     //获取城市列表
     public function getCitylist() {
         $citylist = Db::table('mp_city')->select();
@@ -21,7 +27,7 @@ class Api extends Common {
     //获取需求列表
     public function getRlist()
     {
-        $condition['page'] = input('post.page',2);
+        $condition['page'] = input('post.page',1);
         $condition['perpage'] = input('post.perpage',10);
         $condition['city'] = input('post.city');
         $condition['county'] = input('post.county');
@@ -61,13 +67,14 @@ class Api extends Common {
         $val['form_id'] = input('post.formid');
 
         $this->checkPost($val);
+        $image = input('post.image');
         $this->checkRealnameAuth();
 
         if(!$this->checkExist('mp_cate',[
             ['id','=',$val['cate_id']],
             ['pid','<>',0]
             ])) {
-            return ajax([],-3);
+            return ajax('cate_id',-3);
         }
 
         if(!is_currency($val['order_price'])) {
@@ -100,31 +107,31 @@ class Api extends Common {
         $val['city'] = $cityinfo['city'];
         $val['county'] = $cityinfo['district'];
 
-        foreach ($_FILES as $k=>$v) {
-            if($v['name'] == '') {
-                unset($_FILES[$k]);
+
+        if(is_array($image) && !empty($image)) {
+            if(count($image) > 9) {
+                return ajax('最多上传9张图片',9);
+            }
+            foreach ($image as $v) {
+                if(!file_exists($v)) {
+                    return ajax($v,29);
+                }
             }
         }
-        if(count($_FILES) >= 9) {
-            return ajax('最多上传9张图片',9);
+        $image_array = [];
+        foreach ($image as $v) {
+            $image_array[] = $this->rename_file($v);
         }
-
-        $info = $this->multi_upload('static/uploads/req/');
-        if($info['error'] === 0) {
-            $val['image'] = serialize($info['data']);
-        }else {
-            return ajax($info['msg'],9);
-        }
+        $val['image'] = serialize($image_array);
         try {
             Db::table('mp_req')->insert($val);
         }catch (\Exception $e) {
-            if(count($_FILES) > 0) {
-                foreach ($info['data'] as $v) {
-                    @unlink($v);
-                }
+            foreach ($image_array as $v) {
+                @unlink($v);
             }
             return ajax($e->getMessage(),-1);
         }
+
         return ajax($val,1);
 
     }
@@ -271,6 +278,22 @@ class Api extends Common {
             return ajax('操作失败',-1);
         }
 
+    }
+
+    public function uploadImage() {
+        if(!empty($_FILES)) {
+            if(count($_FILES) > 1) {
+                return ajax('最多上传一张图片',9);
+            }
+            $info = $this->upload(array_keys($_FILES)[0]);
+            if($info['error'] === 0) {
+                return ajax(['path'=>$info['data']]);
+            }else {
+                return ajax($info['msg'],9);
+            }
+        }else {
+            return ajax('请上传图片',30);
+        }
     }
 
 

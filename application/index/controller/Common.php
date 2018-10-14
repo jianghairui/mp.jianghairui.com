@@ -47,6 +47,7 @@ class Common extends Controller {
         $noneed = [
             'Login/login',
             'Pay/notify',
+            'Index/test',
         ];
         if (in_array(request()->controller() . '/' . request()->action(), $noneed)) {
             return true;
@@ -149,12 +150,12 @@ class Common extends Controller {
         $filename_array = explode('.',$_FILES[$k]['name']);
         $ext = array_pop($filename_array);
 
-        $path =  'static/upload/' . date('Y-m-d');
+        $path =  'static/tmp/';
         is_dir($path) or mkdir($path,0755,true);
         //转移临时文件
         $newname = create_unique_number() . '.' . $ext;
-        move_uploaded_file($_FILES[$k]["tmp_name"], $path . "/" . $newname);
-        $filepath = $path . "/" . $newname;
+        move_uploaded_file($_FILES[$k]["tmp_name"], $path . $newname);
+        $filepath = $path . $newname;
 
         return array('error'=>0,'data'=>$filepath);
     }
@@ -176,6 +177,15 @@ class Common extends Controller {
             $arr[] = $path . "/" . $newname;
         }
         return array('error'=>0,'data'=>$arr);
+    }
+
+    protected function rename_file($tmp,$path = '') {
+        $filename = substr(strrchr($tmp,"/"),1);
+        $path = $path ? $path : 'static/uploads/req/';
+        $path.= date('Y-m-d') . '/';
+        is_dir($path) or mkdir($path,0755,true);
+        @rename($tmp, $path . $filename);
+        return $path . $filename;
     }
 
     //检验格式大小

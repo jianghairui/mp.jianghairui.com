@@ -42,6 +42,7 @@ class Index extends Common
         $val['identity_num'] = input('post.identity_num');
         $val['openid'] = $this->myinfo['openid'];
         $this->checkPost($val);
+        $image = input('post.image');
 
         if(!$realname) {
             return ajax([],-2);
@@ -68,29 +69,29 @@ class Index extends Common
             return ajax('当前状态无法认证',17);
         }
 
-        foreach ($_FILES as $k=>$v) {
-            if($v['name'] == '') {
-                unset($_FILES[$k]);
+        if(is_array($image) && !empty($image)) {
+            if(count($image) != 3) {
+                return ajax('必须上传三张图片',9);
+            }
+            foreach ($image as $v) {
+                if(!file_exists($v)) {
+                    return ajax($v,29);
+                }
             }
         }
-        if(count($_FILES) != 3) {
-            return ajax('必须上传三张图片',9);
+        $image_array = [];
+        foreach ($image as $v) {
+            $image_array[] = $this->rename_file($v,'static/uploads/identity/');
         }
-        $info = $this->multi_upload('static/uploads/identity/');
-        if($info['error'] === 0) {
-            $val['identity_pic'] = serialize($info['data']);
-        }else {
-            return ajax($info['msg'],9);
-        }
+        $val['identity_pic'] = serialize($image_array);
 
         $exist = Db::table('mp_userinfo')->where('openid','=',$val['openid'])->find();
 
         if($exist) {
             try {
                 Db::table('mp_userinfo')->where('openid','=',$val['openid'])->update($val);
-
             }catch (\Exception $e) {
-                foreach ($info['data'] as $v) {
+                foreach ($image_array as $v) {
                     @unlink($v);
                 }
                 return ajax($e->getMessage(),-1);
@@ -103,7 +104,7 @@ class Index extends Common
             try {
                 Db::table('mp_userinfo')->insert($val);
             }catch (\Exception $e) {
-                foreach ($info['data'] as $v) {
+                foreach ($image_array as $v) {
                     @unlink($v);
                 }
                 return ajax($e->getMessage(),-1);
@@ -239,14 +240,22 @@ class Index extends Common
         $data['formid'] = input('post.formid');
         $res = Db::table('mp_formid')->insert($data);
         if($res) {
-            return ajax($data);
+            return ajax(input('post.image'));
         }else {
             return ajax([],-1);
         }
     }
 
     public function test() {
-
+        $v = 'static/tmp/200x150.jpg';
+        if(!file_exists($v)) {
+            die('file not exists');
+        }
+        $filename = substr(strrchr($v,"/"),1);
+        $path = 'static/uploads/req/' . date('Y-m-d') . '/';
+        is_dir($path) or mkdir($path,0755,true);
+        $info = @rename($v, $path . $filename);
+        halt($info);
     }
 
 

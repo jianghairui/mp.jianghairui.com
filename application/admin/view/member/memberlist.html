@@ -60,7 +60,7 @@
         {foreach $list as $li}
         <tr class="text-c userinfo">
             <td><input type="checkbox" value="1" name=""></td>
-            <td><img src="{$li.avatar}" alt=""></td>
+            <td><img src="{if $li['avatar']}{$li.avatar}{else /}/static/src/image/default.jpg{/if}" alt=""></td>
             <td>{$li.nickname}</td>
             <td><b style="color:blue">￥：{$li.balance}</b></td>
             <td>{$li.gender}</td>
