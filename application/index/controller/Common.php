@@ -30,8 +30,8 @@ class Common extends Controller {
             'key'                => 'LDB15083727504163447056815279712',   // API 密钥
 
             // 如需使用敏感接口（如退款、发送红包等）需要配置 API 证书路径(登录商户平台下载 API 证书)
-            'cert_path'          =>  '/var/www/mp.jianghairui.com/public/cert/cert.pem', // XXX: 绝对路径！！！！
-            'key_path'           =>  '/var/www/mp.jianghairui.com/public/cert/key.pem',      // XXX: 绝对路径！！！！
+            'cert_path'          =>  '/var/www/mp.jianghairui.com/public/cert/apiclient_cert.pem',
+            'key_path'           =>  '/var/www/mp.jianghairui.com/public/cert/apiclient_key.pem',
 
             // 下面为可选项,指定 API 调用返回结果的类型：array(default)/collection/object/raw/自定义类名
             'response_type' => 'array',

@@ -20,7 +20,11 @@ class Plan extends Controller {
         $this->mp_config = [
             'app_id' => 'wx0d6f8a78265b1229',
             'secret' => 'b7cfdce371e0c100e7fc1d482933d7f5',
-            // 下面为可选项,指定 API 调用返回结果的类型：array(default)/collection/object/raw/自定义类名
+
+            'mch_id'             => '1514516351',
+            'key'                => 'LDB15083727504163447056815279712',
+            'cert_path'          =>  '/var/www/mp.jianghairui.com/public/cert/apiclient_cert.pem',
+            'key_path'           =>  '/var/www/mp.jianghairui.com/public/cert/apiclient_key.pem',
             'response_type' => 'array',
             'log' => [
                 'level' => 'debug',
@@ -91,6 +95,34 @@ class Plan extends Controller {
         }
     }
 
+    public function wx_refund() {
+        $app = Factory::payment($this->mp_config);
+        $transactionId = '4200000183201810127612953670';
+        $refundNumber = 'R153914887724190200';
+        $totalFee = 1;
+        $refundFee = 1;
+        // 参数分别为：微信订单号、商户退款单号、订单金额、退款金额、其他参数
+        $result = $app->refund->byTransactionId($transactionId,$refundNumber,$totalFee,$refundFee,$config = [
+            'refund_desc' => '商品已售完123',
+            'refund_account' => 'REFUND_SOURCE_RECHARGE_FUNDS'
+            ]);
+        halt($result);
+
+    }
+
+    public function transfer() {
+        $app = Factory::payment($this->mp_config);
+        $result  = $app->transfer->toBalance([
+            'partner_trade_no' => '1235', // 商户订单号，需保持唯一性(只能是字母或者数字，不能包含有符号)
+            'openid' => 'olIWK5ZRuUpmyxqiN4fNj_XxfszI',
+            'check_name' => 'NO_CHECK', // NO_CHECK：不校验真实姓名, FORCE_CHECK：强校验真实姓名
+            're_user_name' => '姜海', // 如果 check_name 设置为FORCE_CHECK，则必填用户真实姓名
+            'amount' => 100, // 企业付款金额，单位为分
+            'desc' => '啊!订单无人接', // 企业付款操作说明信息。必填
+        ]);
+        halt($result);
+    }
+
 
 //选出中奖者和未中奖者
     private function prizeResult($exist = []) {
@@ -135,4 +167,17 @@ class Plan extends Controller {
         ]);
         halt($result);
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
