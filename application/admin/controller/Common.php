@@ -151,6 +151,15 @@ class Common extends Controller {
         return $ip;
     }
 
+    protected function log($detail = '', $type = 0) {
+        $insert['detail'] = $detail;
+        $insert['admin_id'] = session('admin_id');
+        $insert['create_time'] = time();
+        $insert['ip'] = $this->getip();
+        $insert['type'] = $type;
+        Db::table('mp_syslog')->insert($insert);
+    }
+
 
 
 }

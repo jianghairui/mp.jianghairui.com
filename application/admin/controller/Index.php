@@ -329,6 +329,40 @@ class Index extends Common
         return ajax([],1);
     }
 
+    public function multiPass() {
+        $map[] = ['status','=',0];
+        $map[] = ['pay_status','=',1];
+        $id_array = input('post.check');
+        if(empty($id_array)) {
+           return ajax('请选择审核对象',-1);
+        }
+        $map[] = ['id','in',$id_array];
+
+        try {
+            $res = Db::table('mp_req')->where($map)->update(['status'=>1]);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax('共有' . $res . '条通过审核',1);
+    }
+
+    public function multiReject() {
+        $map[] = ['status','=',0];
+        $map[] = ['pay_status','=',1];
+        $id_array = input('post.check');
+        if(empty($id_array)) {
+            return ajax('请选择审核对象',-1);
+        }
+        $map[] = ['id','in',$id_array];
+
+        try {
+            $res = Db::table('mp_req')->where($map)->update(['status'=>-1]);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax('共有' . $res . '条未通过',1);
+    }
+
 
 
 

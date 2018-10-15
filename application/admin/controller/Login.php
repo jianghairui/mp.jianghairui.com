@@ -57,6 +57,7 @@ class Login extends Common {
                     cookie('mp_username',null);
                     cookie('mp_password',null);
                 }
+                $this->log('登录账号',0);
                 $this->redirect(url('Index/index'));
             }else {
                 $this->error('用户名密码不匹配',url('Login/index'));
@@ -76,6 +77,12 @@ class Login extends Common {
 
     public function personal() {
         return $this->fetch();
+    }
+
+    public function test() {
+//        halt(session('login_vcode'));
+//        session_start();
+//        halt($_SESSION);
     }
 
 

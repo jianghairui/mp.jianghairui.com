@@ -20,7 +20,7 @@ class Req extends Model
 
     public static function sortlist($condition = [],$lon = "117.04712",$lat = "39.064491",$page = 0,$perpage = 10) {
         $sql = "";
-        $sql .= " AND re.pay_status=1 AND re.status=1";
+        $sql .= " AND re.pay_status=1 AND re.status=1 AND re.show=1";
 
         if($condition['perpage']) {
             $perpage = $condition['perpage'];

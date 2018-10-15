@@ -3,7 +3,7 @@
         width:40px;height:40px;border-radius: 50%;
     }
 </style>
-<nav class="breadcrumb"><i class="Hui-iconfont">&#xe67f;</i> 首页 <span class="c-gray en">&gt;</span> 管理员管理 <span class="c-gray en">&gt;</span> 管理员列表 <a class="btn btn-success radius r" style="line-height:1.6em;margin-top:3px" href="javascript:location.replace(location.href);" title="刷新" ><i class="Hui-iconfont">&#xe68f;</i></a></nav>
+<nav class="breadcrumb"><i class="Hui-iconfont">&#xe67f;</i> 首页 <span class="c-gray en">&gt;</span> 会员管理 <span class="c-gray en">&gt;</span> 获奖列表 <a class="btn btn-success radius r" style="line-height:1.6em;margin-top:3px" href="javascript:location.replace(location.href);" title="刷新" ><i class="Hui-iconfont">&#xe68f;</i></a></nav>
 <div class="page-container">
     <section id="formAjax">
         <div class="text-c">
@@ -11,8 +11,8 @@
             <span class="select-box inline">
                 <select id="status" name="status" class="select">
                     <option value="">全部</option>
-                    <option value="0">未发货</option>
-                    <option value="1">已发货</option>
+                    <option value="0" {if $status===0}selected{/if}>未发货</option>
+                    <option value="1" {if $status===1}selected{/if}>已发货</option>
                 </select>
 		    </span>
             日期范围：
@@ -24,7 +24,7 @@
         </div>
     </section>
     <div class="cl pd-5 bg-1 bk-gray mt-20">
-        <span class="r">共有数据：<strong>54</strong> 条</span> </div>
+        <span class="r">共有数据：<strong>{$page.count}</strong> 条</span> </div>
     <table class="table table-border table-bordered table-bg">
         <thead>
         <tr class="text-c">
@@ -48,7 +48,7 @@
             <td>{$li.tel}</td>
             <td>{$li.title}</td>
             <td>{$li.address}</td>
-            <td>{$li.create_time|date='Y-m-d'}</td>
+            <td>{$li.win_time|date='Y-m-d'}</td>
             <td class="td-status">
                 {switch $li['status']}
                 {case 0}
@@ -67,6 +67,9 @@
             </td>
         </tr>
         {/foreach}
+        <tr>
+            <td class="text-r" id="page" colspan="9"></td>
+        </tr>
         </tbody>
     </table>
 </div>
@@ -75,6 +78,43 @@
 <script type="text/javascript" src="/lib/datatables/1.10.0/jquery.dataTables.min.js"></script>
 <script type="text/javascript" src="/lib/laypage/1.2/laypage.js"></script>
 <script type="text/javascript">
+
+    var url = '{:url("Member/winnerlist")}' + '?<?php echo $page["query"];?>'
+    var curr = '{$page.curr}'
+    laypage({
+        cont: 'page', //容器。值支持id名、原生dom对象，jquery对象。
+        pages: '{$page.totalPage}', //通过后台拿到的总页数
+        skip: false, //是否开启跳页
+        skin: '#5a98de',
+        curr: curr || 1, //当前页
+        jump: function(obj, first){ //触发分页后的回调
+            // console.log(obj)
+            if(!first) {
+                window.location.href = url+'&page=' + obj.curr;
+            }
+        }
+    });
+
+    $("#search-btn").click(function () {
+        var status = $("#formAjax").find("#status").val()
+        var logmin = $("#formAjax").find("#logmin").val()
+        var logmax = $("#formAjax").find("#logmax").val()
+        var search = $("#formAjax").find("#search").val()
+        var str = ''
+        if(status.length != '') {
+            str += '&status=' + status
+        }
+        if(logmin.length != '') {
+            str += '&logmin=' + logmin
+        }
+        if(logmax.length != '') {
+            str += '&logmax=' + logmax
+        }
+        if(search.length != '') {
+            str += '&search=' + search
+        }
+        window.location.href = '{:url("Member/winnerlist")}' + '?' + str;
+    });
 
     function user_send(obj,id) {
         layer.confirm('确认发货吗？',function(index){

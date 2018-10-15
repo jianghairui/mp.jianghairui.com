@@ -48,6 +48,7 @@ class Api extends Common {
 
         $map[] = ['r.pay_status','=',1];
         $map[] = ['r.status','=',1];
+        $map[] = ['r.show','=',1];
         if($gender) {
             $map[] = ['u.gender','=',$gender];
         }
