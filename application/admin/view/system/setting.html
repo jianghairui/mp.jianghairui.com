@@ -37,6 +37,14 @@
                         <input type="text" id="website-description" placeholder="输入格式(1-99)" value="{$info.agency_rate*100}" class="input-text" name="agency_rate">
                     </div>
                 </div>
+                <div class="row cl">
+                    <label class="form-label col-xs-4 col-sm-2">
+                        <span class="c-red">*</span>
+                        最低提现金额：</label>
+                    <div class="formControls col-xs-8 col-sm-9">
+                        <input type="text" id="" placeholder="输入金额,不可少于1元" value="{$info.minimum}" class="input-text" name="minimum">
+                    </div>
+                </div>
             </div>
             <div class="tabCon">
                 <div class="row cl">
@@ -88,6 +96,11 @@
                     min:1,
                     max:99
                 },
+                minimum:{
+                    required:true,
+                    number:true,
+                    min:1
+                }
             },
             focusCleanup:true,
             success:"valid",

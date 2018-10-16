@@ -219,5 +219,11 @@ class Common extends Controller {
         }
     }
 
+    protected function billingLog($insert_data = []) {
+        $insert_data['create_time'] = time();
+        $insert_data['openid'] = $this->myinfo['openid'];
+        Db::table('mp_billing')->insert($insert_data);
+    }
+
 
 }

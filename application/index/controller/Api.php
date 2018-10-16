@@ -162,6 +162,7 @@ class Api extends Common {
     public function apply()
     {
         $val['rid'] = input('post.rid');
+        $val['form_id'] = input('post.formid');
         $this->checkPost($val);
         $val['intro_openid'] = input('post.intro_openid');
         $val['to_openid'] = $this->myinfo['openid'];
@@ -303,6 +304,23 @@ class Api extends Common {
 
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     public function uploadImage() {
         if(!empty($_FILES)) {
             if(count($_FILES) > 1) {
@@ -318,8 +336,6 @@ class Api extends Common {
             return ajax('请上传图片',30);
         }
     }
-
-
 
     private function sortMerge($node,$pid=0)
     {

@@ -178,19 +178,94 @@ class Index extends Common
     }
 
 
+    //我申请的列表
     public function myApply() {
 
     }
-
+    //我的发布列表
     public function myRelease() {
 
     }
-
-    public function myChoice() {
+    //接单的候选者列表
+    public function myChoiceList() {
 
     }
+    //选择一个接单人
+    public function makeChoice() {
 
+    }
+    //我的账户余额
     public function myAccount() {
+        $where[] = ['openid','=',$this->myinfo['openid']];
+        try {
+            $info = Db::table('mp_user')->where($where)->value('balance');
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax($info,1);
+    }
+    //我的明细
+    public function myAccountDetail() {
+        $where[] = ['openid','=',$this->myinfo['openid']];
+        try {
+            $info = Db::table('mp_billing')->where($where)->field('openid',true)->select();
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax($info,1);
+    }
+    //申请提现
+    public function withdrawApply() {
+        $val['money'] = input('post.money');
+        $val['form_id'] = input('post.formid');
+        $openid = $this->myinfo['openid'];
+
+        $this->checkPost($val);
+        if(!is_currency($val['money'])) {
+            return ajax([],5);
+        }
+
+        $setting = Db::table('mp_setting')->find();
+
+        if(floatval($val['money']) < 1 || floatval($val['money']) < floatval($setting['minimum'])) {
+            return ajax([],32);
+        }
+        $where[] = ['openid','=',$openid];
+        $balance = Db::table('mp_user')->where($where)->value('balance');
+        $withdraw_rate = $setting['withdraw_rate'];
+
+        $real_money = round((floatval($withdraw_rate)+1)*floatval($val['money']),2);
+
+        if(floatval($balance) < $real_money) {
+            return ajax([],31);
+        }
+
+        Db::startTrans();
+        try {
+            $insert_data = [
+                'order_sn' => create_unique_number('T'),
+                'openid' => $openid,
+                'money' => $val['money'],
+                'withdraw_rate' => $withdraw_rate,
+                'fee' => round(floatval($withdraw_rate)*floatval($val['money']),2),
+                'real_money' => $real_money,
+                'apply_time' => time(),
+                'form_id' => $val['form_id']
+            ];
+            Db::table('mp_user')->where('openid','=',$openid)->setDec('balance',$real_money);
+            Db::table('mp_withdraw')->insert($insert_data);
+            Db::commit();
+        }catch (\Exception $e) {
+            Db::rollback();
+            return ajax($e->getMessage(),-1);
+        }
+        $log = [
+            'detail' => '申请提现',
+            'money' => -$real_money,
+            'type' => 3
+        ];
+        $this->billingLog($log);
+        return ajax([],1);
 
     }
 
@@ -240,7 +315,7 @@ class Index extends Common
         $data['formid'] = input('post.formid');
         $res = Db::table('mp_formid')->insert($data);
         if($res) {
-            return ajax(input('post.image'));
+            return ajax([],1);
         }else {
             return ajax([],-1);
         }

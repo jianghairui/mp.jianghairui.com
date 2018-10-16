@@ -20,8 +20,13 @@ class System extends Common {
         $val['req_rate'] = input('post.req_rate');
         $val['withdraw_rate'] = input('post.withdraw_rate');
         $val['agency_rate'] = input('post.agency_rate');
+        $val['minimum'] = input('post.minimum');
         $this->checkPost($val);
         $val['allow_ip'] = input('post.allow_ip');
+
+        if(!is_currency($val['minimum'])) {
+            return ajax('金额不可以低于1',-1);
+        }
 
         if($val['allow_ip']) {
             $ips = explode(',',$val['allow_ip']);

@@ -16,6 +16,5 @@ class ApiHandle extends Handle
     function render(Exception $e)
     {
         return ajax($e->getMessage(), -1, 400);
-
     }
 }
