@@ -103,27 +103,26 @@ class Plan extends Controller {
         $refundFee = 1;
         // 参数分别为：微信订单号、商户退款单号、订单金额、退款金额、其他参数
         $result = $app->refund->byTransactionId($transactionId,$refundNumber,$totalFee,$refundFee,$config = [
-            'refund_desc' => '商品已售完123',
+            'refund_desc' => '订单无人接',
             'refund_account' => 'REFUND_SOURCE_RECHARGE_FUNDS'
             ]);
         halt($result);
 
     }
 
+
     public function transfer() {
         $app = Factory::payment($this->mp_config);
         $result  = $app->transfer->toBalance([
-            'partner_trade_no' => '1235', // 商户订单号，需保持唯一性(只能是字母或者数字，不能包含有符号)
-            'openid' => 'olIWK5ZRuUpmyxqiN4fNj_XxfszI',
+            'partner_trade_no' => 'T153967459600399600', // 商户订单号，需保持唯一性(只能是字母或者数字，不能包含有符号)
+            'openid' => 'olIWK5R_TV5k1jCrbBOvBN5FT9Ss',
             'check_name' => 'NO_CHECK', // NO_CHECK：不校验真实姓名, FORCE_CHECK：强校验真实姓名
             're_user_name' => '姜海', // 如果 check_name 设置为FORCE_CHECK，则必填用户真实姓名
             'amount' => 100, // 企业付款金额，单位为分
-            'desc' => '啊!订单无人接', // 企业付款操作说明信息。必填
+            'desc' => '提现到账', // 企业付款操作说明信息。必填
         ]);
         halt($result);
     }
-
-
 //选出中奖者和未中奖者
     private function prizeResult($exist = []) {
         foreach ($exist as $v) {
@@ -167,6 +166,14 @@ class Plan extends Controller {
         ]);
         halt($result);
     }
+
+    public function send()
+    {
+
+    }
+
+
+
 
 
 

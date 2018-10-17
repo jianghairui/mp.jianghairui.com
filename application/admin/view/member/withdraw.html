@@ -125,7 +125,7 @@
         window.location.href = '{:url("Member/withdraw")}' + '?' + str;
     });
 
-    var click_lock = true
+    var click_lock = true,reason = '';
 
     /*提现审核*/
     function user_shenhe(obj,id){
@@ -162,31 +162,40 @@
 
             },
             function(){
-                if(click_lock) {
-                    click_lock = false
-                    $.ajax({
-                        url:"{:url('Member/withdrawReject')}",
-                        type:'post',
-                        dataType:'json',
-                        data:{id:id},
-                        success:function(data) {
-                            console.log(data)
-                            if(data.code == 1) {
-                                $(obj).parents("tr").find(".td-status").html('<span class="label label-default radius">未通过</span>');
-                                $(obj).parent().html('<span class="btn btn-link radius"></span>');
-                                layer.msg('未通过', {icon:5,time:1000});
-                            }else {
-                                layer.msg(data.data,{icon:2,time:1000})
-                            }
-                            click_lock = true
-                        },
-                        error:function(data) {
-                            layer.msg('请求失败!',{icon:5,time:1000})
-                            click_lock = true
-                        },
-                    })
-                }
-
+                layer.prompt({
+                    formType: 2,
+                    value: '系统余额不足',
+                    title: '请输入理由(最多10个字)',
+                    maxlength:10,
+                    area: ['400px', '300px'] //自定义文本域宽高
+                }, function(value, index, elem){
+                    reason = value;
+                    layer.close(index);
+                    if(click_lock) {
+                        click_lock = false
+                        $.ajax({
+                            url:"{:url('Member/withdrawReject')}",
+                            type:'post',
+                            dataType:'json',
+                            data:{id:id,reason:reason},
+                            success:function(data) {
+                                console.log(data)
+                                if(data.code == 1) {
+                                    $(obj).parents("tr").find(".td-status").html('<span class="label label-default radius">未通过</span>');
+                                    $(obj).parent().html('<span class="btn btn-link radius"></span>');
+                                    layer.msg('未通过', {icon:5,time:1000});
+                                }else {
+                                    layer.msg(data.data,{icon:2,time:1000})
+                                }
+                                click_lock = true
+                            },
+                            error:function(data) {
+                                layer.msg('请求失败!',{icon:5,time:1000})
+                                click_lock = true
+                            },
+                        })
+                    }
+                });
 
             });
     }

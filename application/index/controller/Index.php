@@ -322,15 +322,6 @@ class Index extends Common
     }
 
     public function test() {
-        $v = 'static/tmp/200x150.jpg';
-        if(!file_exists($v)) {
-            die('file not exists');
-        }
-        $filename = substr(strrchr($v,"/"),1);
-        $path = 'static/uploads/req/' . date('Y-m-d') . '/';
-        is_dir($path) or mkdir($path,0755,true);
-        $info = @rename($v, $path . $filename);
-        halt($info);
     }
 
 

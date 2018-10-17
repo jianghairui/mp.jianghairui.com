@@ -193,15 +193,19 @@ class Common extends Controller {
         $allowType = array(
             "image/gif",
             "image/jpeg",
+            "image/jpg",
             "image/png",
             "image/pjpeg",
             "image/bmp"
         );
+        if($_FILES[$file]["type"] == '') {
+            return '图片存在中文名或超过2M';
+        }
         if(!in_array($_FILES[$file]["type"],$allowType)) {
-            return 'invalid fileType :' . $_FILES[$file]["name"];
+            return '图片格式无效' . $_FILES[$file]["type"];
         }
         if($_FILES[$file]["size"] > 1024*300) {
-            return 'fileSize not exceeding  300Kb :' . $_FILES[$file]["name"];
+            return '图片大小不超过300Kb';
         }
         if ($_FILES[$file]["error"] > 0) {
             return "error: " . $_FILES[$file]["error"];

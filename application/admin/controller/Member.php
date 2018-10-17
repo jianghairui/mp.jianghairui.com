@@ -184,7 +184,6 @@ class Member extends Common {
         }
         return ajax('共拉黑' . $res . '个用户',1);
     }
-
     //获奖列表
     public function winnerlist() {
         $param['status'] = input('param.status','');
@@ -289,13 +288,14 @@ class Member extends Common {
             ->join('mp_user u','w.openid=u.openid','left')
             ->where($where)
             ->field('w.*,u.realname,u.tel,u.avatar,u.nickname,u.balance')
+            ->order(['apply_time'=>'DESC'])
             ->limit(($curr_page - 1)*$perpage,$perpage)->select();
         $this->assign('list',$list);
         $this->assign('page',$page);
         $this->assign('status',$param['status']);
         return $this->fetch();
     }
-
+    //
     public function withdrawPass() {
         $map[] = ['status','=',0];
         $map[] = ['id','=',input('post.id',0)];
@@ -313,44 +313,15 @@ class Member extends Common {
 
         if($res > 0) {
             //todo 微信转账
-            $tpl = ['openid'=>$exist['openid'],'form_id'=>$exist['form_id'],'order_sn'=>$exist['order_sn']];
-            $this->sendPassTpl($tpl);
+            $tpl = ['openid'=>$exist['openid'],'form_id'=>$exist['form_id'],'order_sn'=>$exist['order_sn'],'money'=>$exist['real_money']];
+            $this->asyn_tranfer($tpl);
+            $this->asyn_send_passtpl($tpl);
             return ajax([],1);
         }else {
             return ajax('审核失败',-1);
         }
     }
-
-    public function sendPassTpl($data) {
-
-        try {
-            $template_id = 'zUD8Lhpll8p3yl70xmuRM2mjsoVUlrEoIfqN7RObZM8';
-            $touser = $data['openid'];
-            $title = '提现申请';
-            $status = '已通过,请注意查收';
-            $time = date('Y-m-d H:i:s');
-            $desc = $data['order_sn'];
-            $form_id = $data['form_id'];
-        }catch (\Exception $e) {
-            throw new HttpResponseException(ajax($e->getMessage(),-1));
-        }
-
-        $app = Factory::miniProgram($this->mp_config);
-        $result = $app->template_message->send([
-            'touser' => $touser,
-            'template_id' => $template_id,
-            'page' => 'index',
-            'form_id' => $form_id,
-            'data' => [
-                'keyword1' => $title,
-                'keyword2' => $status,
-                'keyword3' => $time,
-                'keyword4' => $desc,
-            ]
-        ]);
-//        throw new HttpResponseException(ajax($result,999));
-    }
-
+    //
     public function withdrawReject() {
         $map[] = ['status','=',0];
         $map[] = ['id','=',input('post.id',0)];
@@ -384,14 +355,87 @@ class Member extends Common {
             }
             //todo 发送模板消息
             $tpl = ['reason'=>$reason,'openid'=>$exist['openid'],'form_id'=>$exist['form_id'],'order_sn'=>$exist['order_sn']];
-            $this->sendRejectTpl($tpl);
+            $this->asyn_send_rejecttpl($tpl);
             return ajax([],1);
         }else {
             return ajax('审核失败',-1);
         }
     }
 
-    public function sendRejectTpl($data) {
+
+
+
+    public function transfer() {
+        if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
+            $data = input('param.');
+            $where = [
+                ['order_sn', '=', $data['order_sn']],
+                ['status', '=', 1],
+            ];
+            $exist = Db::table('mp_withdraw')->where($where)->find();
+            if ($exist && $exist['openid'] == $data['openid']) {
+                $app = Factory::payment($this->mp_config);
+                $result = $app->transfer->toBalance([
+                    'partner_trade_no' => $exist['order_sn'], // 商户订单号，需保持唯一性(只能是字母或者数字，不能包含有符号)
+                    'openid' => $exist['openid'],
+                    'check_name' => 'NO_CHECK', // NO_CHECK：不校验真实姓名, FORCE_CHECK：强校验真实姓名
+                    're_user_name' => '', // 如果 check_name 设置为FORCE_CHECK，则必填用户真实姓名
+                    'amount' => floatval($exist['real_money']) * 100, // 企业付款金额，单位为分
+                    'desc' => '提现到账', // 企业付款操作说明信息。必填
+                ]);
+                $insert_data = [
+                    'order_sn' => $data['order_sn'],
+                    'detail' => json_encode($result)
+                ];
+                Db::table('mp_withdraw_pay')->insert($insert_data);
+            } else {
+                $data['info'] = '订单不存在';
+                Db::table('mp_test')->insert(['detail' => json($data)]);
+            }
+        }
+
+    }
+
+    public function sendPassTpl() {
+        $data = input('param.');
+        //下面两行为调试用
+//        $data['cmd'] = request()->controller() . '/' . request()->action();
+//        Db::table('mp_withdraw_pay')->insert(['detail'=>json_encode($data)]);
+        try {
+            $template_id = 'zUD8Lhpll8p3yl70xmuRM2mjsoVUlrEoIfqN7RObZM8';
+            $touser = $data['openid'];
+            $title = '提现申请';
+            $status = '已通过,请注意查收';
+            $time = date('Y-m-d H:i:s');
+            $desc = $data['order_sn'];
+            $form_id = $data['form_id'];
+        }catch (\Exception $e) {
+            throw new HttpResponseException(ajax($e->getMessage(),-1));
+        }
+
+        $app = Factory::miniProgram($this->mp_config);
+        $result = $app->template_message->send([
+            'touser' => $touser,
+            'template_id' => $template_id,
+            'page' => 'index',
+            'form_id' => $form_id,
+            'data' => [
+                'keyword1' => $title,
+                'keyword2' => $status,
+                'keyword3' => $time,
+                'keyword4' => $desc,
+            ]
+        ]);
+//        Db::table('mp_test')->insert(['cmd'=>$data['cmd'],'detail'=>json_encode($result)]);
+        if($result['errcode'] === 0) {
+            Db::table('mp_withdraw')->where('order_sn','=',$data['order_sn'])->update(['send'=>1]);
+        }else{
+            Db::table('mp_withdraw')->where('order_sn','=',$data['order_sn'])->update(['send'=>-1]);
+        }
+    }
+
+    public function sendRejectTpl() {
+        $data = input('param.');
         try {
             $template_id = 'iZ_pPUdONBNHxSxIENbpYHV-kNrghW8zcKg8EfkuSqU';
             $touser = $data['openid'];
@@ -420,8 +464,89 @@ class Member extends Common {
 
         $app = Factory::miniProgram($this->mp_config);
         $result = $app->template_message->send($send_data);
-//        throw new HttpResponseException(ajax($result));
+        if($result['errcode'] === 0) {
+            Db::table('mp_withdraw')->where('order_sn','=',$data['order_sn'])->update(['send'=>1]);
+        }else{
+            Db::table('mp_withdraw')->where('order_sn','=',$data['order_sn'])->update(['send'=>-1]);
+        }
     }
+
+
+
+
+
+
+
+
+
+
+    private function asyn_send_passtpl($data) {
+        $data = [
+            'order_sn' => $data['order_sn'],
+            'openid' => $data['openid'],
+            'form_id' => $data['form_id']
+        ];
+        $param = http_build_query($data);
+        $fp = fsockopen('ssl://' . $this->weburl, 443, $errno, $errstr, 20);
+        if (!$fp){
+            echo 'error fsockopen';
+        }else{
+            stream_set_blocking($fp,0);
+            $http = "GET /admin/member/sendPassTpl?".$param." HTTP/1.1\r\n";
+            $http .= "Host: ".$this->weburl."\r\n";
+            $http .= "Connection: Close\r\n\r\n";
+            fwrite($fp,$http);
+            usleep(1000);
+            fclose($fp);
+        }
+    }
+
+    private function asyn_send_rejecttpl($data) {
+        $data = [
+            'order_sn' => $data['order_sn'],
+            'openid' => $data['openid'],
+            'form_id' => $data['form_id'],
+            'reason' => $data['reason']
+        ];
+        $param = http_build_query($data);
+        $fp = fsockopen('ssl://' . $this->weburl, 443, $errno, $errstr, 20);
+        if (!$fp){
+            echo 'error fsockopen';
+        }else{
+            stream_set_blocking($fp,0);
+            $http = "GET /admin/member/sendRejectTpl?".$param." HTTP/1.1\r\n";
+            $http .= "Host: ".$this->weburl."\r\n";
+            $http .= "Connection: Close\r\n\r\n";
+            fwrite($fp,$http);
+            usleep(1000);
+            fclose($fp);
+        }
+    }
+
+    private function asyn_tranfer($data) {
+        $data = [
+            'order_sn' => $data['order_sn'],
+            'openid' => $data['openid'],
+        ];
+        $param = http_build_query($data);
+        $fp = fsockopen('ssl://' . $this->weburl, 443, $errno, $errstr, 20);
+        if (!$fp){
+            echo 'error fsockopen';
+        }else{
+            stream_set_blocking($fp,0);
+            $http = "GET /admin/member/transfer?".$param." HTTP/1.1\r\n";
+            $http .= "Host: ".$this->weburl."\r\n";
+            $http .= "Connection: Close\r\n\r\n";
+            fwrite($fp,$http);
+            usleep(1000);
+            fclose($fp);
+        }
+    }
+
+
+
+
+
 
 
 
