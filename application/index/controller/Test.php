@@ -21,13 +21,13 @@ class Test extends Controller
             'address' => '天津市西青区张家窝镇灵泉北里8号楼2门501'
         );
 //        $redis = mredis()->set('username',$data,30);
-        $redis = mredis()->LPush('prize_actor_list',$data1);
-        halt($redis);
+//        $redis = mredis()->LPush('prize_actor_list',$data1);
+//        halt($redis);
     }
 
     public function getinfo() {
-        $result = mredis()->LPop('prize_actor_list');
-        halt($result);
+//        $result = mredis()->LPop('prize_actor_list');
+//        halt($result);
     }
 
 

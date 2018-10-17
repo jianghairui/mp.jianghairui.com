@@ -237,7 +237,7 @@ class Index extends Common
         $perpage = input('param.perpage',10);
 
         $where = [];
-        $where[] = ['pay_status','=',1];
+        $where[] = ['pay_status','<>',0];
 
         if(!is_null($param['status']) && $param['status'] !== '') {
             $where[] = ['status','=',$param['status']];
