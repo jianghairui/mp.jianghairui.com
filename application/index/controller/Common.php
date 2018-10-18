@@ -12,6 +12,8 @@ use think\exception\HttpResponseException;
 class Common extends Controller {
 
     protected $mp_config = [];
+    protected $myinfo = [];
+    protected $domain = '';
 
 
     public function initialize()
@@ -47,6 +49,7 @@ class Common extends Controller {
         $noneed = [
             'Login/login',
             'Pay/notify',
+            'Index/rechargenotify',
             'Index/test',
         ];
         if (in_array(request()->controller() . '/' . request()->action(), $noneed)) {
@@ -106,11 +109,10 @@ class Common extends Controller {
     /**
      * 工具方法，将一个数组转成 xml 格式
      */
-    protected static function array2xml($arr) {
+    protected function array2xml($arr) {
         if(!is_array($arr) || count($arr) <= 0) {
             return false;
         }
-
         $xml = "<xml>";
         foreach ($arr as $key=>$val)
         {
@@ -227,6 +229,39 @@ class Common extends Controller {
         $insert_data['create_time'] = time();
         $insert_data['openid'] = $this->myinfo['openid'];
         Db::table('mp_billing')->insert($insert_data);
+    }
+
+    //生成签名
+    protected function getSign($arr)
+    {
+        //去除数组中的空值
+        $arr = array_filter($arr);
+        //如果数组中有签名删除签名
+        if(isset($arr['sing']))
+        {
+            unset($arr['sing']);
+        }
+        //按照键名字典排序
+        ksort($arr);
+        //生成URL格式的字符串
+        $str = http_build_query($arr)."&key=".$this->mp_config['key'];
+        $str = $this->arrToUrl($str);
+        return  strtoupper(md5($str));
+    }
+    //URL解码为中文
+    protected function arrToUrl($str)
+    {
+        return urldecode($str);
+    }
+
+    protected function log($cmd,$str) {
+        $file= ROOT_PATH . '/exception.txt';
+        $text='[Time ' . date('Y-m-d H:i:s') ."]\ncmd:" .$cmd. "\n" .$str. "\n---END---" . "\n";
+        if(false !== fopen($file,'a+')){
+            file_put_contents($file,$text,FILE_APPEND);
+        }else{
+            echo '创建失败';
+        }
     }
 
 

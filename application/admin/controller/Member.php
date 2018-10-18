@@ -224,7 +224,7 @@ class Member extends Common {
             ->join("mp_user u","a.openid=u.openid",'left')
             ->join("mp_prize p","a.prize_id=p.id",'left')
             ->where($where)
-            ->field('a.*,u.nickname,u.avatar,u.tel,p.title')
+            ->field('a.*,u.nickname,u.realname,u.avatar,u.tel,p.title')
             ->order(['a.win_time'=>'DESC'])
             ->limit(($curr_page - 1)*$perpage,$perpage)->select();
         $this->assign('list',$list);
@@ -248,7 +248,48 @@ class Member extends Common {
             return ajax('操作失败',-1);
         }
     }
+    //查看充值列表
+    public function recharge() {
+        $param['logmin'] = input('param.logmin');
+        $param['logmax'] = input('param.logmax');
+        $param['search'] = input('param.search');
 
+        $page['query'] = http_build_query(input('param.'));
+
+        $curr_page = input('param.page',1);
+        $perpage = input('param.perpage',20);
+
+        $where = [];
+        if($param['logmin']) {
+            $where[] = ['p.pay_time','>=',strtotime(date('Y-m-d 00:00:00',strtotime($param['logmin'])))];
+        }
+
+        if($param['logmax']) {
+            $where[] = ['p.pay_time','<=',strtotime(date('Y-m-d 23:59:59',strtotime($param['logmax'])))];
+        }
+
+        if($param['search']) {
+            $where[] = ['p.order_sn|u.realname|u.tel|u.nickname|v.title','like',"%{$param['search']}%"];
+        }
+        $count = Db::table('mp_vip_pay')->alias('p')
+            ->join('mp_user u','p.openid=u.openid','left')
+            ->join('mp_vip v','p.vip_id=v.id','left')
+            ->where($where)->count();
+        $list = Db::table('mp_vip_pay')->alias('p')
+            ->join('mp_user u','p.openid=u.openid','left')
+            ->join('mp_vip v','p.vip_id=v.id','left')
+            ->where($where)
+            ->order(['p.pay_time'=>'DESC'])
+            ->field('p.*,u.realname,u.nickname,u.tel,v.title')
+            ->limit(($curr_page - 1)*$perpage,$perpage)
+            ->select();
+        $page['count'] = $count;
+        $page['curr'] = $curr_page;
+        $page['totalPage'] = ceil($count/$perpage);
+        $this->assign('list',$list);
+        $this->assign('page',$page);
+        return $this->fetch();
+    }
 
     //提现列表
     public function withdraw() {
@@ -277,7 +318,7 @@ class Member extends Common {
         }
 
         if($param['search']) {
-            $where[] = ['u.nickname|u.realname|u.tel','like',"%{$param['search']}%"];
+            $where[] = ['w.order_sn|u.nickname|u.realname|u.tel','like',"%{$param['search']}%"];
         }
 
         $count = Db::table('mp_withdraw')->alias('w')->join('mp_user u','w.openid=u.openid','left')->where($where)->count();
@@ -295,7 +336,7 @@ class Member extends Common {
         $this->assign('status',$param['status']);
         return $this->fetch();
     }
-    //
+    //通过提现审核
     public function withdrawPass() {
         $map[] = ['status','=',0];
         $map[] = ['id','=',input('post.id',0)];
@@ -321,7 +362,7 @@ class Member extends Common {
             return ajax('审核失败',-1);
         }
     }
-    //
+    //拒绝提现审核
     public function withdrawReject() {
         $map[] = ['status','=',0];
         $map[] = ['id','=',input('post.id',0)];
@@ -361,10 +402,7 @@ class Member extends Common {
             return ajax('审核失败',-1);
         }
     }
-
-
-
-
+    //转账
     public function transfer() {
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
             $data = input('param.');
@@ -395,7 +433,7 @@ class Member extends Common {
         }
 
     }
-
+    //发送通过审核通知
     public function sendPassTpl() {
         $data = input('param.');
         //下面两行为调试用
@@ -433,7 +471,7 @@ class Member extends Common {
             Db::table('mp_withdraw')->where('order_sn','=',$data['order_sn'])->update(['send'=>-1]);
         }
     }
-
+    //发送未通过审核通知
     public function sendRejectTpl() {
         $data = input('param.');
         try {
@@ -471,15 +509,7 @@ class Member extends Common {
         }
     }
 
-
-
-
-
-
-
-
-
-
+//----  创建异步任务  审核结果消息模板,支付通知
     private function asyn_send_passtpl($data) {
         $data = [
             'order_sn' => $data['order_sn'],
@@ -542,7 +572,7 @@ class Member extends Common {
             fclose($fp);
         }
     }
-
+//---  END ---
 
 
 

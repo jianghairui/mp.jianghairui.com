@@ -16,7 +16,7 @@
                 </select>
 		    </span>
             日期范围：
-            <input type="text" onfocus="WdatePicker({ maxDate:'#F{ $dp.$D(\'logmax\') }' })" id="logmin" value="{$Think.get.logmin}" class="input-text Wdate" style="width:120px;">
+            <input type="text" onfocus="WdatePicker({ maxDate:'#F{ $dp.$D(\'logmax\')||\'%y-%M-%d\' }' })" id="logmin" value="{$Think.get.logmin}" class="input-text Wdate" style="width:120px;">
             -
             <input type="text" onfocus="WdatePicker({ minDate:'#F{ $dp.$D(\'logmin\') }' })" id="logmax" value="{$Think.get.logmax}" class="input-text Wdate" style="width:120px;">
             <input type="text" name="search" value="{$Think.get.search}" id="search" placeholder=" 会员名称或手机号" style="width:250px" class="input-text">
@@ -31,6 +31,7 @@
             <th width="40">ID</th>
             <th width="60">头像</th>
             <th width="100">昵称</th>
+            <th width="100">真实姓名</th>
             <th width="100">手机号</th>
             <th width="150">奖品</th>
             <th>收货地址</th>
@@ -45,6 +46,7 @@
             <td>{$li.id}</td>
             <td><img src="{$li.avatar}" alt=""></td>
             <td>{$li.nickname}</td>
+            <td>{$li.realname}</td>
             <td>{$li.tel}</td>
             <td>{$li.title}</td>
             <td>{$li.address}</td>
@@ -68,7 +70,7 @@
         </tr>
         {/foreach}
         <tr>
-            <td class="text-r" id="page" colspan="9"></td>
+            <td class="text-r" id="page" colspan="10"></td>
         </tr>
         </tbody>
     </table>

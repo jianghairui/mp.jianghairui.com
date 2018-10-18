@@ -19,7 +19,7 @@
                 </select>
 		    </span>
             日期范围：
-            <input type="text" onfocus="WdatePicker({ maxDate:'#F{ $dp.$D(\'logmax\') }' })" id="logmin" value="{$Think.get.logmin}" class="input-text Wdate" style="width:120px;">
+            <input type="text" onfocus="WdatePicker({ maxDate:'#F{ $dp.$D(\'logmax\')||\'%y-%M-%d\' }' })" id="logmin" value="{$Think.get.logmin}" class="input-text Wdate" style="width:120px;">
             -
             <input type="text" onfocus="WdatePicker({ minDate:'#F{ $dp.$D(\'logmin\') }' })" id="logmax" value="{$Think.get.logmax}" class="input-text Wdate" style="width:120px;">
             <input type="text" name="search" value="{$Think.get.search}" id="search" placeholder=" 会员名称或手机号" style="width:250px" class="input-text">
@@ -41,7 +41,8 @@
         <tr class="text-c">
             <th width="25"><input type="checkbox" name="" value=""></th>
             <th width="60">头像</th>
-            <th width="150">昵称</th>
+            <th width="100">昵称</th>
+            <th width="100">真实姓名</th>
             <th width="90">账户余额</th>
             <th width="90">性别</th>
             <th width="150">手机号</th>
@@ -60,6 +61,7 @@
                 <td><input type="checkbox" value="{$li.id}" name="check[]"></td>
                 <td><img src="{if $li['avatar']}{$li.avatar}{else /}/static/src/image/default.jpg{/if}" alt=""></td>
                 <td>{$li.nickname}</td>
+                <td>{$li.realname}</td>
                 <td><b style="color:blue">￥：{$li.balance}</b></td>
                 <td>{$li.gender}</td>
                 <td>{$li.tel}</td>
@@ -114,7 +116,7 @@
         </form>
 
         <tr>
-            <td colspan="12" id="page" class="text-r"></td>
+            <td colspan="13" id="page" class="text-r"></td>
         </tr>
         </tbody>
     </table>

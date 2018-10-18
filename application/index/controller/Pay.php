@@ -56,8 +56,6 @@ class Pay extends Common {
         }
         return ajax($result);
     }
-
-
     //发送消息模板
     public function sendTpl() {
         $val['prepay_id'] = input('post.prepay_id');
@@ -84,64 +82,48 @@ class Pay extends Common {
         ]);
         return ajax($result);
     }
-
-
-
     //支付回调接口
     public function notify() {
         //将返回的XML格式的参数转换成php数组格式
         $xml = file_get_contents('php://input');
         $data = $this->xml2array($xml);
-
-        if($data['return_code'] == 'SUCCESS' && $data['result_code'] == 'SUCCESS') {
-            $map = [
-                ['order_sn','=',$data['out_trade_no']],
-                ['pay_status','=',0],
-            ];
-            $exist = Db::table('mp_req')->where($map)->find();
-            if($exist) {
-                $update_data = [
-                    'pay_status' => 1,
-                    'trans_id' => $data['transaction_id'],
-                    'pay_time' => time(),
+        if($data) {
+            if($data['return_code'] == 'SUCCESS' && $data['result_code'] == 'SUCCESS') {
+                $map = [
+                    ['order_sn','=',$data['out_trade_no']],
+                    ['pay_status','=',0],
                 ];
-                Db::table('mp_req')->where('order_sn','=',$data['out_trade_no'])->update($update_data);
+                $exist = Db::table('mp_req')->where($map)->find();
+                if($exist) {
+                    $update_data = [
+                        'pay_status' => 1,
+                        'trans_id' => $data['transaction_id'],
+                        'pay_time' => time(),
+                    ];
+                    try {
+                        Db::table('mp_req')->where('order_sn','=',$data['out_trade_no'])->update($update_data);
+                    } catch (\Exception $e) {
+                        $this->log('notify',$e->getMessage());
+                    }
+                }
+
+            }else if($data['return_code'] == 'SUCCESS' && $data['result_code'] != 'SUCCESS'){
+                $data['out_trade_no'] = '支付失败';
             }
-
-        }else if($data['return_code'] == 'SUCCESS' && $data['result_code'] != 'SUCCESS'){
-            $data['out_trade_no'] = '支付失败';
+            try {
+                $order_sn = isset($data['out_trade_no']) ? $data['out_trade_no'] : '';
+                Db::table('mp_paylog')->insert(['order_sn'=>$order_sn,'detail'=>json_encode($data),'type'=>1]);
+            }catch (\Exception $e) {
+                $this->log('notify',$e->getMessage());
+            }
         }
-
-        $order_sn = isset($data['out_trade_no']) ? $data['out_trade_no'] : '';
-        Db::table('mp_paylog')->insert(['order_sn'=>$order_sn,'detail'=>json_encode($data)]);
-        echo $this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']);
+        exit($this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']));
 
     }
 
 
 
 
-    //生成签名
-    private function getSign($arr)
-    {
-        //去除数组中的空值
-        $arr = array_filter($arr);
-        //如果数组中有签名删除签名
-        if(isset($arr['sing']))
-        {
-            unset($arr['sing']);
-        }
-        //按照键名字典排序
-        ksort($arr);
-        //生成URL格式的字符串
-        $str = http_build_query($arr)."&key=".$this->mp_config['key'];
-        $str = $this->arrToUrl($str);
-        return  strtoupper(md5($str));
-    }
-    //URL解码为中文
-    private function arrToUrl($str)
-    {
-        return urldecode($str);
-    }
+
 
 }

@@ -118,7 +118,6 @@ class Index extends Common
         }
         return ajax([],1);
     }
-
     //获取职业列表
     public function getJobList() {
         $where[] = ['status','=',1];
@@ -176,7 +175,107 @@ class Index extends Common
         return ajax([]);
 
     }
+    //获取会员列表
+    public function getVipList() {
+        $list = Db::table('mp_vip')->select();
+        return ajax($list);
+    }
+    //选择充值类目
+    public function recharge() {
+        $vip_id = input('post.vip_id');
+        $exist = Db::table('mp_vip')->where('id','=',$vip_id)->find();
+        if(!$exist) {
+            return ajax([],-3);
+        }
+        $insert = [
+            'order_sn' => create_unique_number('V'),
+            'vip_id' => $vip_id,
+            'order_price' => $exist['price'],
+            'openid' => $this->myinfo['openid'],
+            'create_time' => time(),
+            'days' => $exist['days']
+        ];
+        try {
+            Db::table('mp_vip_pay')->insert($insert);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        $app = Factory::payment($this->mp_config);
+        $result = $app->order->unify([
+            'body' => $exist['title'],
+            'out_trade_no' => $insert['order_sn'],
+//                'total_fee' => floatval($exist['real_price']) * 100,
+            'total_fee' => 1,
+            'notify_url' => $this->domain . 'index/index/rechargeNotify',
+            'trade_type' => 'JSAPI',
+            'openid' => $this->myinfo['openid'],
+        ]);
+        if($result['return_code'] != 'SUCCESS' || $result['result_code'] != 'SUCCESS') {
+            return ajax($result['err_code_des'],-1);
+        }
 
+        try {
+            $result['timestamp'] = strval(time());
+            $sign['appId'] = $result['appid'];
+            $sign['timeStamp'] = $result['timestamp'];
+            $sign['nonceStr'] = $result['nonce_str'];
+            $sign['signType'] = 'MD5';
+            $sign['package'] = 'prepay_id=' . $result['prepay_id'];
+            $result['paySign'] = $this->getSign($sign);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax($result);
+    }
+    //充值VIP支付回调接口
+    public function rechargeNotify() {
+        $xml = file_get_contents('php://input');
+        $data = $this->xml2array($xml);
+        if($data) {
+            if($data['return_code'] == 'SUCCESS' && $data['result_code'] == 'SUCCESS') {
+                $map = [
+                    ['order_sn','=',$data['out_trade_no']],
+                    ['status','=',0],
+                ];
+                $exist = Db::table('mp_vip_pay')->where($map)->find();
+                if($exist) {
+                    $user = Db::table('mp_user')->where('openid','=',$exist['openid'])->find();
+                    $update_data = [
+                        'status' => 1,
+                        'trans_id' => $data['transaction_id'],
+                        'pay_time' => time(),
+                    ];
+                    try {
+                        Db::table('mp_vip_pay')->where('order_sn','=',$data['out_trade_no'])->update($update_data);
+                        if($user['vip'] == 1) {
+                            $update = [
+                                'vip' => 1,
+                                'vip_time' => $user['vip_time'] + $exist['days']*3600*24
+                            ];
+                        }else {
+                            $update = [
+                                'vip' => 1,
+                                'vip_time' => time() + $exist['days']*3600*24
+                            ];
+                        }
+                        Db::table('mp_user')->where('openid','=',$exist['openid'])->update($update);
+                    }catch (\Exception $e) {
+                        $this->log('rechargeNotify',$e->getMessage());
+                    }
+                }
+
+            }else if($data['return_code'] == 'SUCCESS' && $data['result_code'] != 'SUCCESS'){
+                $data['out_trade_no'] = '支付失败';
+            }
+            try {
+                $order_sn = isset($data['out_trade_no']) ? $data['out_trade_no'] : '';
+                Db::table('mp_paylog')->insert(['order_sn'=>$order_sn,'detail'=>json_encode($data),'type'=>2]);
+            }catch (\Exception $e) {
+                $this->log('rechargeNotify',$e->getMessage());
+            }
+        }
+        exit($this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']));
+    }
 
     //我申请的列表
     public function myApply() {

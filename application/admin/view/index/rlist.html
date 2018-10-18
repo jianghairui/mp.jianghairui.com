@@ -20,7 +20,7 @@
 		</span> 日期范围：
         <input type="text" onfocus="WdatePicker({ maxDate:'#F{ $dp.$D(\'logmax\')||\'%y-%M-%d\' }' })" value="{$Think.get.logmin}" id="logmin" class="input-text Wdate" style="width:120px;">
         -
-        <input type="text" onfocus="WdatePicker({ minDate:'#F{ $dp.$D(\'logmin\') }',maxDate:'%y-%M-%d' })" value="{$Think.get.logmin}" id="logmax" class="input-text Wdate" style="width:120px;">
+        <input type="text" onfocus="WdatePicker({ minDate:'#F{ $dp.$D(\'logmin\') }' })" value="{$Think.get.logmin}" id="logmax" class="input-text Wdate" style="width:120px;">
         <input type="text" name="search" value="{$Think.get.search}" id="search" placeholder=" 需求标题" style="width:250px" class="input-text">
         <button name="" id="search-btn" class="btn btn-success" type="submit"><i class="Hui-iconfont">&#xe665;</i> 查找订单</button>
     </div>
@@ -36,10 +36,11 @@
             <thead>
             <tr class="text-c">
                 <th width="25"><input type="checkbox" name="" value=""></th>
-                <th width="80">ID</th>
+                <th width="150">需求单号</th>
                 <th>标题</th>
                 <th width="80">分类</th>
                 <th width="80">实付金额</th>
+                <th width="90">发布人</th>
                 <th width="120">发布时间</th>
                 <th width="60">订单状态</th>
                 <th width="75">审核</th>
@@ -51,10 +52,11 @@
                 {foreach $list as $li}
                 <tr class="text-c">
                     <td><input type="checkbox" value="{$li.id}" name="check[]"></td>
-                    <td>{$li.id}</td>
+                    <td>{$li.order_sn}</td>
                     <td class="text-l"><u style="cursor:pointer" class="text-primary">{$li.title}</u></td>
-                    <td>行业动态</td>
+                    <td>{$li.cate_name}</td>
                     <td class="text-l"><span class="price">￥：{$li.real_price}</span></td>
+                    <td class="text-c">{$li.nickname}</td>
                     <td>{$li.create_time|date="Y-m-d H:i"}</td>
                     <td class="td-status">
                         {switch $li['status']}
@@ -118,7 +120,7 @@
 
 
             <tr class="text-r">
-                <td colspan="9" id="page">
+                <td colspan="10" id="page">
 
                 </td>
             </tr>

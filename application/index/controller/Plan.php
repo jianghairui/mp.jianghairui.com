@@ -53,27 +53,61 @@ class Plan extends Controller {
             echo 'denied access';
         }
     }
-
+    //执行的计划任务
     public function prizeStatus() {
         $_SERVER['REMOTE_ADDR'] = '47.104.130.39';
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
-            $detail = '';
             $map[] = ['open_time','<=',time()];
             $map[] = ['status','=',1];
 
             $exist = Db::table('mp_prize')->where($map)->select();
             if($exist) {
-                //TODO 开奖活动
-                $this->prizeResult($exist);
-//                try {
-//                    Db::table('mp_prize')->where($map)->update(['status'=>3]);
-//                }catch (\Exception $e) {
-//                    $detail = $e->getMessage();
-//                }
+                //修改活动状态为已结束
+                try {
+                    Db::table('mp_prize')->where($map)->update(['status'=>3]);
+                }catch (\Exception $e) {
+                    $this->log('Plan/prizeResult',$e->getMessage());
+                }
+                foreach ($exist as $v) {    //选出中奖者和未中奖者
+                    $probability = $v['probability']*100;
+                    $prize_num = $v['num'];
+                    $joiner = Db::table('mp_prize_actor')->where('prize_id','=',$v['id'])->column('id');
+                    $winner = [];
+                    $loser = [];
+                    shuffle($joiner);
+                    foreach ($joiner as $id) {
+                        if($prize_num > 0) {
+                            if(mt_rand(1,10000) <= $probability) {
+                                $winner[] = $id;
+                                $prize_num--;
+                            }else {
+                                $loser[] = $id;
+                            }
+                        }else {
+                            $loser[] = $id;
+                        }
+                    }
+                    try {
+                        Db::table('mp_prize_actor')->where('id','in',$winner)->update(['win'=>1]);
+                        Db::table('mp_prize_actor')->where('id','in',$loser)->update(['win'=>0]);
+                    }catch (\Exception $e) {
+                        $this->log('Plan/prizeResult',$e->getMessage());
+                    }
+                    $prize_list = Db::table('mp_prize_actor') ->where('prize_id','=',$v['id'])->select();
+                    $redis = mredis(['select'=>1]);
+                    foreach ($prize_list as $value) {
+                        $redis->lPush('prizelist',[
+                            'title' => $v['title'],
+                            'prize' => $v['prize'],
+                            'form_id' => $value['form_id'],
+                            'openid' => $value['openid'],
+                            'result' => $value['win']
+                        ]);
+                    }
+                }
             }
-
             $data = [
-                'detail'    =>  $detail,
+                'detail'    =>  json_encode($exist),
                 'cmd'   =>  request()->controller() . '/' . request()->action()
             ];
             Db::table('mp_planlog')->insert($data);
@@ -82,7 +116,56 @@ class Plan extends Controller {
             echo 'denied access';
         }
     }
+    //创建异步发送模板消息任务
+    public function asyn_sendTpl() {
+        if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
+            $redis = mredis(['select'=>1]);
+            while (true) {
+                $data = $redis->rPop('prizelist');
+                if(!$data) {
+                    break;
+                }
+                $param = http_build_query($data);
+                $fp = fsockopen('ssl://' . $this->weburl, 443, $errno, $errstr, 20);
+                if (!$fp){
+                    echo 'error fsockopen';
+                }else{
+                    stream_set_blocking($fp,0);
+                    $http = "GET /index/plan/sendTpl?".$param." HTTP/1.1\r\n";
+                    $http .= "Host: ".$this->weburl."\r\n";
+                    $http .= "Connection: Close\r\n\r\n";
+                    fwrite($fp,$http);
+                    usleep(1000);
+                    fclose($fp);
+                }
+            }
+        }
 
+    }
+    //发送模板消息
+    public function sendTpl() {
+        if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
+            $data = input('param.');
+            $result = $data['result'] ? '已中奖' : '未中奖';
+            $app = Factory::miniProgram($this->mp_config);
+            $result = $app->template_message->send([
+                'touser' => $data['openid'],
+                'template_id' => 'Xt5b8FyGrHRGOLP1hLgtiVWCQrWT0DbI7CgU6k8Gvd0',
+                'page' => 'index',
+                'form_id' => $data['form_id'],
+                'data' => [
+                    'keyword1' => $data['title'],
+                    'keyword2' => $data['prize'],
+                    'keyword3' => $result,
+                    'keyword4' => '近帮小程序',
+                ]
+            ]);
+            //Db::table('mp_test')->insert(['cmd'=>'Plan/sendTpl','detail'=>json_encode($result)]);
+        }
+    }
+
+
+    //执行的计划任务
     public function reqStatus() {
         $_SERVER['REMOTE_ADDR'] = '47.104.130.39';
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
@@ -123,7 +206,7 @@ class Plan extends Controller {
             echo 'denied access';
         }
     }
-
+    //创建异步退款任务
     private function asyn_refund($arg) {
         $data = [
             'order_sn' => $arg['order_sn'],
@@ -143,7 +226,7 @@ class Plan extends Controller {
             fclose($fp);
         }
     }
-
+    //退款
     public function wx_refund() {
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
             $cmd = request()->controller() . '/' . request()->action();
@@ -242,54 +325,6 @@ class Plan extends Controller {
 
     }
 
-//选出中奖者和未中奖者
-    private function prizeResult($exist = []) {
-        foreach ($exist as $v) {
-            $probability = $v['probability']*100;
-            $prize_num = $v['num'];
-            $joiner = Db::table('mp_prize_actor')->where('prize_id','=',$v['id'])->column('id');
-            $winner = [];
-            $loser = [];
-            shuffle($joiner);
-            foreach ($joiner as $id) {
-                if($prize_num > 0) {
-                    if(mt_rand(1,10000) <= $probability) {
-                        $winner[] = $id;
-                        $prize_num--;
-                    }else {
-                        $loser[] = $id;
-                    }
-                }else {
-                    $loser[] = $id;
-                }
-            }
-            Db::table('mp_prize_actor')->where('id','in',$winner)->update(['win'=>1]);
-            Db::table('mp_prize_actor')->where('id','in',$loser)->update(['win'=>0]);
-        }
-    }
-//Xt5b8FyGrHRGOLP1hLgtiVWCQrWT0DbI7CgU6k8Gvd0
-
-    public function sendTpl() {
-        $app = Factory::miniProgram($this->mp_config);
-        $result = $app->template_message->send([
-            'touser' => 'olIWK5ZRuUpmyxqiN4fNj_XxfszI',
-            'template_id' => 'Xt5b8FyGrHRGOLP1hLgtiVWCQrWT0DbI7CgU6k8Gvd0',
-            'page' => 'index',
-            'form_id' => '1539337794436',
-            'data' => [
-                'keyword1' => '元旦送元宵',
-                'keyword2' => '湾仔码头元宵',
-                'keyword3' => '未中奖',
-                'keyword4' => '近帮小程序',
-            ]
-        ]);
-        halt($result);
-    }
-
-    public function send()
-    {
-
-    }
 
 
 
@@ -302,7 +337,8 @@ class Plan extends Controller {
 
 
 
-    private function log($cmd,$str) {
+
+    protected function log($cmd,$str) {
         $file= ROOT_PATH . '/exception.txt';
         $text='[Time ' . date('Y-m-d H:i:s') ."]\ncmd:" .$cmd. "\n" .$str. "\n---END---" . "\n";
         if(false !== fopen($file,'a+')){

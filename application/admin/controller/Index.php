@@ -237,29 +237,35 @@ class Index extends Common
         $perpage = input('param.perpage',10);
 
         $where = [];
-        $where[] = ['pay_status','<>',0];
+        $where[] = ['r.pay_status','<>',0];
 
         if(!is_null($param['status']) && $param['status'] !== '') {
-            $where[] = ['status','=',$param['status']];
+            $where[] = ['r.status','=',$param['status']];
         }
 
         if($param['logmin']) {
-            $where[] = ['create_time','>=',strtotime(date('Y-m-d 00:00:00',strtotime($param['logmin'])))];
+            $where[] = ['r.create_time','>=',strtotime(date('Y-m-d 00:00:00',strtotime($param['logmin'])))];
         }
 
         if($param['logmax']) {
-            $where[] = ['create_time','<=',strtotime(date('Y-m-d 23:59:59',strtotime($param['logmax'])))];
+            $where[] = ['r.create_time','<=',strtotime(date('Y-m-d 23:59:59',strtotime($param['logmax'])))];
         }
 
         if($param['search']) {
-            $where[] = ['title','like',"%{$param['search']}%"];
+            $where[] = ['r.order_sn|r.title|u.tel','like',"%{$param['search']}%"];
         }
 
-        $count = Db::table('mp_req')->where($where)->count();
+        $count = Db::table('mp_req')->alias('r')
+            ->join('mp_user u','r.f_openid=u.openid','left')
+            ->where($where)->count();
         $page['count'] = $count;
         $page['curr'] = $curr_page;
         $page['totalPage'] = ceil($count/$perpage);
-        $list = Db::table('mp_req')->where($where)->order(['id'=>'DESC'])->limit(($curr_page - 1)*$perpage,$perpage)->select();
+        $list = Db::table('mp_req')->alias('r')
+            ->join('mp_user u','r.f_openid=u.openid','left')
+            ->join('mp_cate c','r.cate_id=c.id','left')
+            ->field('r.*,u.nickname,u.realname,u.tel,c.cate_name')
+            ->where($where)->order(['r.id'=>'DESC'])->limit(($curr_page - 1)*$perpage,$perpage)->select();
         $this->assign('list',$list);
         $this->assign('page',$page);
         $this->assign('status',$param['status']);
