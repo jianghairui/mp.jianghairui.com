@@ -17,7 +17,6 @@ class Api extends Common {
         $openid = $this->myinfo['openid'];
         return ajax($openid);
     }
-
     //获取城市列表
     public function getCitylist() {
         $citylist = Db::table('mp_city')->select();
@@ -252,8 +251,6 @@ class Api extends Common {
     //抽奖
     public function luckyDraw() {
         $openid = $this->myinfo['openid'];
-        $val['tel'] = input('post.tel');
-        $val['address'] = input('post.address');
         $val['prize_id'] = input('post.prize_id');
         $val['form_id'] = input('post.formid');
         $this->checkPost($val);
@@ -261,7 +258,6 @@ class Api extends Common {
         if(!is_tel($val['tel'])) {
             return ajax([],14);
         }
-
         $myjoin = Db::table('mp_prize_actor')->where('openid','=',$openid)->column('prize_id');
 
         $map[] = ['id','=',$val['prize_id']];
@@ -286,8 +282,10 @@ class Api extends Common {
 
         Db::startTrans();
         try {
+            $val['order_sn'] = create_unique_number('P');
             $val['openid'] = $this->myinfo['openid'];
             $val['create_time'] = time();
+            $val['price'] = Db::table('mp_setting')->where('id','=',1)->value('carriage');
             Db::table('mp_prize_actor')->insert($val);
             $res = Db::table('mp_user')->where('openid','=',$openid)->setDec('times');
             Db::commit();

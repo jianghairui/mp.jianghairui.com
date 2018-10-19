@@ -21,6 +21,8 @@ class System extends Common {
         $val['withdraw_rate'] = input('post.withdraw_rate');
         $val['agency_rate'] = input('post.agency_rate');
         $val['minimum'] = input('post.minimum');
+        $val['carriage'] = input('post.carriage');
+        $val['credit'] = input('post.credit');
         $this->checkPost($val);
         $val['allow_ip'] = input('post.allow_ip');
 

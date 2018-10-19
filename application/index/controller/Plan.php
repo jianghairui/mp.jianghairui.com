@@ -88,7 +88,7 @@ class Plan extends Controller {
                         }
                     }
                     try {
-                        Db::table('mp_prize_actor')->where('id','in',$winner)->update(['win'=>1]);
+                        Db::table('mp_prize_actor')->where('id','in',$winner)->update(['win'=>1,'win_time'=>time()]);
                         Db::table('mp_prize_actor')->where('id','in',$loser)->update(['win'=>0]);
                     }catch (\Exception $e) {
                         $this->log('Plan/prizeResult',$e->getMessage());
@@ -105,12 +105,13 @@ class Plan extends Controller {
                         ]);
                     }
                 }
+                $data = [
+                    'detail'    =>  json_encode($exist),
+                    'cmd'   =>  request()->controller() . '/' . request()->action()
+                ];
+                Db::table('mp_planlog')->insert($data);
             }
-            $data = [
-                'detail'    =>  json_encode($exist),
-                'cmd'   =>  request()->controller() . '/' . request()->action()
-            ];
-            Db::table('mp_planlog')->insert($data);
+
             echo 'curl success' . "\n";
         }else {
             echo 'denied access';
@@ -164,11 +165,11 @@ class Plan extends Controller {
         }
     }
 
-
     //执行的计划任务
     public function reqStatus() {
         $_SERVER['REMOTE_ADDR'] = '47.104.130.39';
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
+            $cmd = request()->controller() . '/' . request()->action();
             $map[] = ['pay_status','=',1];
             $map[] = ['status','=',1];
             $map[] = ['end_time','<=',time()];
@@ -178,13 +179,13 @@ class Plan extends Controller {
                 $log = [
                     'type' => 1,
                     'detail' => json_encode($endtime_array),
-                    'cmd' => request()->controller() . '/' . request()->action()
+                    'cmd' => $cmd
                 ];
                 try {
                     Db::table('mp_planlog')->insert($log);
                     Db::table('mp_req')->where('order_sn','in',$endtime_array)->update(['status'=>-2]);//改为无人接状态
                 }catch (\Exception $e) {
-                    $this->log('plan/reqStatus',$e->getMessage());
+                    $this->log($cmd,$e->getMessage());
                 }
                 //todo 退款
                 foreach ($endtime_array as $v) {
@@ -193,14 +194,71 @@ class Plan extends Controller {
                     $this->asyn_refund($arg);
                 }
             }
-            //订单到期没提交更改状态为未完成并进行退款
-//            $map[] = ['status','=',1];
-//            $map[] = ['deadline','<=',time()];
-//            $data = [
-//                'detail'    =>  '',
-//                'cmd'   =>  request()->controller() . '/' . request()->action()
-//            ];
-//            Db::table('mp_planlog')->insert($data);
+            //订单到期没提交更改状态为未完成并进行退款,并给予接单信誉值处罚
+            $map2[] = ['pay_status','=',1];
+            $map2[] = ['status','=',2];
+            $map2[] = ['deadline','<=',time()];
+            $deadline_array = Db::table('mp_req')->where($map2)->select();
+            if($deadline_array) {
+                $log = [
+                    'type' => 2,
+                    'detail' => json_encode($deadline_array),
+                    'cmd' => $cmd
+                ];
+                try {
+                    Db::table('mp_planlog')->insert($log);
+                    Db::table('mp_req')->where($map2)->update(['status'=>5]);//改为未完成
+                }catch (\Exception $e) {
+                    $this->log($cmd,$e->getMessage());
+                }
+                //todo 退款
+                $to_openid = [];
+                foreach ($deadline_array as $v) {
+                    $to_openid[] = $v['to_openid'];
+                    $arg['order_sn'] = $v['order_sn'];
+                    $arg['reason'] = '订单未完成';
+                    $this->asyn_refund($arg);
+                }
+                //todo 减少信誉值
+                $credit = Db::table('mp_setting')->where('id','=',1)->value('credit');
+                try {
+                    Db::table('mp_user')->where('openid','in',$to_openid)->setDec('credit',$credit);
+                }catch (\Exception $e) {
+                    $this->log($cmd,$e->getMessage());
+                }
+            }
+            //订单按期提交,到期没确认(24小时后)更改状态为完成,并完成报酬的分配(接单人,分享人)
+            $map3[] = ['pay_status','=',1];
+            $map3[] = ['status','=',3];
+            $map3[] = ['deadline','<=',time()-24*3600];
+            $autoComplete = Db::table('mp_req')->where($map3)->select();
+            if($autoComplete) {
+                $log = [
+                    'type' => 6,
+                    'detail' => json_encode($autoComplete),
+                    'cmd' => $cmd
+                ];
+                try {
+                    Db::table('mp_planlog')->insert($log);
+                    Db::table('mp_req')->where($map3)->update(['status'=>4]);//改为已完成
+                }catch (\Exception $e) {
+                    $this->log($cmd,$e->getMessage());
+                }
+                //todo 分配报酬(接单人,分享人)
+                foreach ($autoComplete as $v) {
+                    Db::startTrans();
+                    try {
+                        $reward = $v['order_price'] - $v['agency'];
+                        Db::table('mp_user')->where('openid','=',$v['to_openid'])->setInc('balance',$reward);
+                        Db::table('mp_user')->where('openid','=',$v['intro_openid'])->setInc('balance',$v['agency']);
+                        Db::commit();
+                    }catch (\Exception $e) {
+                        Db::rollback();
+                        $this->log($cmd,$e->getMessage());
+                    }
+                }
+            }
+
             echo 'curl success' . "\n";
         }else {
             echo 'denied access';
@@ -285,7 +343,14 @@ class Plan extends Controller {
 
     }
 
-    public function refund() {//调试用接口
+
+
+
+
+
+
+/***********以下为调试用接口**************/
+    private function refund() {
 
             $app = Factory::payment($this->mp_config);
             $transactionId = '';
@@ -325,27 +390,22 @@ class Plan extends Controller {
 
     }
 
-
-
-
-
-
-
-
-
-
-
-
+    private function test() {
+//        $cmd = request()->controller() . '/' . request()->action();
+//        $this->log($cmd,'SQLSTATE[42S02]: Base table or view not found: 1146 Table \'mp.mp_tests\' doesn\'t exist');
+//        halt('YES');
+    }
 
 
     protected function log($cmd,$str) {
-        $file= ROOT_PATH . '/exception.txt';
+        $file= ROOT_PATH . '/exception_plan.txt';
         $text='[Time ' . date('Y-m-d H:i:s') ."]\ncmd:" .$cmd. "\n" .$str. "\n---END---" . "\n";
         if(false !== fopen($file,'a+')){
             file_put_contents($file,$text,FILE_APPEND);
         }else{
             echo '创建失败';
         }
+        die();
     }
 
 

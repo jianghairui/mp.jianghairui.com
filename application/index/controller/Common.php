@@ -50,6 +50,7 @@ class Common extends Controller {
             'Login/login',
             'Pay/notify',
             'Index/rechargenotify',
+            'Index/prizenotify',
             'Index/test',
         ];
         if (in_array(request()->controller() . '/' . request()->action(), $noneed)) {
@@ -255,7 +256,7 @@ class Common extends Controller {
     }
 
     protected function log($cmd,$str) {
-        $file= ROOT_PATH . '/exception.txt';
+        $file= ROOT_PATH . '/exception_api.txt';
         $text='[Time ' . date('Y-m-d H:i:s') ."]\ncmd:" .$cmd. "\n" .$str. "\n---END---" . "\n";
         if(false !== fopen($file,'a+')){
             file_put_contents($file,$text,FILE_APPEND);

@@ -175,7 +175,7 @@ class Index extends Common
         return ajax([]);
 
     }
-    //获取会员列表
+    //获取可充值类目列表
     public function getVipList() {
         $list = Db::table('mp_vip')->select();
         return ajax($list);
@@ -277,21 +277,108 @@ class Index extends Common
         exit($this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']));
     }
 
-    //我申请的列表
-    public function myApply() {
-
+    //我正在申请的列表
+    public function myApplying() {
+        //todo 暂时不写
     }
-    //我的发布列表
-    public function myRelease() {
+    //我申请成功的列表
+    public function myApplyList() {
+        $map[] = ['r.to_openid','=',$this->myinfo['openid']];
+        $page = input('post.page',1);
+        $perpage = input('post.perpage',10);
+        $data['count'] = Db::table('mp_req')->alias('r')->where($map)->count();
+        $data['list'] = Db::table('mp_req')
+            ->alias('r')
+            ->join('mp_cate c','r.cate_id=c.id','left')
+            ->field('r.title,r.content,r.address,r.num,r.order_price,r.real_price,r.create_time,r.status,c.cate_name')
+            ->where($map)
+            ->order(['r.id'=>'DESC'])->limit(($page-1)*$perpage,$perpage)->select();
+        return ajax($data);
+    }
 
+    //我的发布列表            SELECT * FROM article ORDER BY LOCATE(userid,'4,1,2,3'),id DESC;
+    public function myRelease() {
+        $map[] = ['r.f_openid','=',$this->myinfo['openid']];
+        $page = input('post.page',1);
+        $perpage = input('post.perpage',10);
+        $data['count'] = Db::table('mp_req')->alias('r')->where($map)->count();
+        $data['list'] = Db::table('mp_req')->alias('r')
+            ->join('mp_cate c','r.cate_id=c.id','left')
+            ->where($map)
+            ->field('r.title,r.content,r.address,r.num,r.order_price,r.real_price,r.create_time,r.status,c.cate_name')
+            ->order(['r.id'=>'DESC'])->limit(($page-1)*$perpage,$perpage)->select();
+        return ajax($data);
     }
     //接单的候选者列表
     public function myChoiceList() {
-
+        $map[] = ['status','=',1];
+        $map[] = ['f_openid','=',$this->myinfo['openid']];
+        $rid = Db::table('mp_req')->where($map)->column('id');
+        $list = Db::table('mp_apply')->alias('a')
+            ->join('mp_req r','a.rid=r.id','left')
+            ->field('a.id,a.to_avatar,a.to_nickname,a.apply_time,r.title')
+            ->where('rid','in',$rid)->select();
+        return ajax($list,1);
+    }
+    //查看候选者详情
+    public function getApplyDetail() {
+        $apply_id = input('post.apply_id');
+        $exist = Db::table('mp_apply')->where('id','=',$apply_id)->find();
+        if(!$exist) {
+            return ajax([],-3);
+        }
+        $userinfo = Db::table('mp_user')->alias('u')
+            ->join('mp_userinfo i','u.openid=i.openid','left')
+            ->where('u.openid','=',$exist['to_openid'])
+            ->field('u.nickname,u.avatar,u.credit,u.gender,u.age,u.tel,u.city,i.job,i.resume,i.career')
+            ->find();
+        return ajax($userinfo);
     }
     //选择一个接单人
     public function makeChoice() {
+        $apply_id = input('post.apply_id');
+        if(!$apply_id) {
+            return ajax(['apply_id'=>$apply_id],-2);
+        }
+        $exist = Db::table('mp_apply')->where('id','=',$apply_id)->find();
+        if(!$exist) {
+            return ajax([],-3);
+        }
+        $map = [
+            ['id','=',$exist['rid']],
+            ['status','=',1],
+            ['f_openid','=',$this->myinfo['openid']]
+        ];
+        $req = Db::table('mp_req')->where($map)->find();
+        if(!$req) {
+            return ajax([],10);
+        }
 
+        $update_data = [
+            'to_openid' => $exist['to_openid'],
+            'status' => 2,
+            'take_time' => time()
+        ];
+        if($exist['intro_openid']) {
+            $agency_rate = Db::table('mp_setting')->where('id','=',1)->value('agency_rate');
+            $agency = $agency_rate*$req['order_price'];
+            $update_data['intro_openid'] = $exist['intro_openid'];
+            $update_data['agency'] = $agency;
+        }
+        Db::startTrans();
+        try {
+            Db::table('mp_apply')->where('id','=',$apply_id)->update(['status'=>1]);
+            Db::table('mp_apply')->where([
+                ['id','<>',$apply_id],
+                ['rid','=',$exist['rid']]
+            ])->update(['status'=>-1]);
+            Db::table('mp_req')->where($map)->update($update_data);
+            Db::commit();
+        }catch (\Exception $e) {
+            Db::rollback();
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax([],1);
     }
     //我的账户余额
     public function myAccount() {
@@ -367,6 +454,141 @@ class Index extends Common
         return ajax([],1);
 
     }
+    //获取抽奖纪录
+    public function luckDrawList() {
+        $page = input('post.page',1);
+        $perpage = input('post.perpage',10);
+        $where[] = ['a.openid','=',$this->myinfo['openid']];
+        $data['count'] = Db::table('mp_prize_actor')->alias('a')->where($where)->count();
+        $data['list'] = Db::table('mp_prize_actor')->alias('a')
+            ->join('mp_prize p','a.prize_id=p.id','left')
+            ->where($where)
+            ->field('a.order_sn,a.win,p.title,p.prize,p.cover,p.open_time,p.status')
+            ->limit(($page-1)*$perpage,$perpage)
+            ->select();
+        return ajax($data);
+
+    }
+    //中奖详情
+    public function luckyDrawDetail() {
+        $order_sn = input('post.order_sn');
+        if(!$order_sn) {
+            return ajax([],-2);
+        }
+        $where = [
+            ['a.order_sn','=',$order_sn],
+            ['a.openid','=',$this->myinfo['openid']]
+        ];
+        $exist = Db::table('mp_prize_actor')->alias('a')
+            ->join('mp_prize p','a.prize_id=p.id','left')
+            ->where($where)
+            ->field('a.prize_id,a.order_sn,a.win,a.price,p.title,p.prize,p.cover,p.open_time,p.status')
+            ->find();
+        if(!$exist) {
+            return ajax([],10);
+        }
+        return ajax($exist);
+
+    }
+    //填写手机号地址并支付
+    public function payForPrize() {
+        $val['order_sn'] = input('post.order_sn');
+        $val['tel'] = input('post.tel');
+        $val['address'] = input('post.address');
+        $this->checkPost($val);
+
+        if(!is_tel($val['tel'])) {
+            return ajax([],14);
+        }
+
+        $where = [
+            ['order_sn','=',$val['order_sn']],
+            ['win','=',1],
+            ['openid','=',$this->myinfo['openid']]
+        ];
+        $exist = Db::table('mp_prize_actor')
+            ->where($where)
+            ->field('order_sn,price')
+            ->find();
+        if(!$exist) {
+            return ajax([],10);
+        }
+        try {
+            Db::table('mp_prize_actor')->where($where)->update($val);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        //发起订单
+        $app = Factory::payment($this->mp_config);
+        try {
+            $result = $app->order->unify([
+                'body' => '近帮小程序奖品运费',
+                'out_trade_no' => $val['order_sn'],
+//                'total_fee' => floatval($exist['price']) * 100,
+                'total_fee' => 1,
+                'notify_url' => $this->domain . 'index/index/prizeNotify',
+                'trade_type' => 'JSAPI',
+                'openid' => $this->myinfo['openid'],
+            ]);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        if($result['return_code'] != 'SUCCESS' || $result['result_code'] != 'SUCCESS') {
+            return ajax($result['err_code_des'],-1);
+        }
+
+        try {
+            $result['timestamp'] = strval(time());
+            $sign['appId'] = $result['appid'];
+            $sign['timeStamp'] = $result['timestamp'];
+            $sign['nonceStr'] = $result['nonce_str'];
+            $sign['signType'] = 'MD5';
+            $sign['package'] = 'prepay_id=' . $result['prepay_id'];
+            $result['paySign'] = $this->getSign($sign);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax($result);
+    }
+
+    public function prizeNotify() {
+        $xml = file_get_contents('php://input');
+        $data = $this->xml2array($xml);
+        if($data) {
+            if($data['return_code'] == 'SUCCESS' && $data['result_code'] == 'SUCCESS') {
+                $map = [
+                    ['order_sn','=',$data['out_trade_no']],
+                    ['pay_status','=',0],
+                ];
+                $exist = Db::table('mp_prize_actor')->where($map)->find();
+                if($exist) {
+                    $update_data = [
+                        'pay_status' => 1,
+                        'trans_id' => $data['transaction_id'],
+                        'pay_time' => time(),
+                    ];
+                    try {
+                        Db::table('mp_prize_actor')->where('order_sn','=',$data['out_trade_no'])->update($update_data);
+                    } catch (\Exception $e) {
+                        $this->log('notify',$e->getMessage());
+                    }
+                }
+
+            }else if($data['return_code'] == 'SUCCESS' && $data['result_code'] != 'SUCCESS'){
+                $data['out_trade_no'] = '支付失败';
+            }
+            try {
+                $order_sn = isset($data['out_trade_no']) ? $data['out_trade_no'] : '';
+                Db::table('mp_paylog')->insert(['order_sn'=>$order_sn,'detail'=>json_encode($data),'type'=>3]);
+            }catch (\Exception $e) {
+                $this->log('notify',$e->getMessage());
+            }
+        }
+        exit($this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']));
+    }
+
+
+
 
 
 
@@ -421,7 +643,9 @@ class Index extends Common
     }
 
     public function test() {
+        halt(create_unique_number('P'));
     }
+
 
 
 

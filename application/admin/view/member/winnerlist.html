@@ -30,14 +30,15 @@
         <tr class="text-c">
             <th width="40">ID</th>
             <th width="60">头像</th>
+            <th width="140">中奖单号</th>
             <th width="100">昵称</th>
-            <th width="100">真实姓名</th>
             <th width="100">手机号</th>
             <th width="150">奖品</th>
             <th>收货地址</th>
             <th width="100">中奖日期</th>
+            <th width="60">支付运费</th>
             <th width="60">是否发货</th>
-            <th width="100">操作</th>
+            <th width="60">操作</th>
         </tr>
         </thead>
         <tbody>
@@ -45,12 +46,23 @@
         <tr class="text-c userinfo">
             <td>{$li.id}</td>
             <td><img src="{$li.avatar}" alt=""></td>
+            <td>{$li.order_sn}</td>
             <td>{$li.nickname}</td>
-            <td>{$li.realname}</td>
             <td>{$li.tel}</td>
             <td>{$li.title}</td>
             <td>{$li.address}</td>
             <td>{$li.win_time|date='Y-m-d'}</td>
+            <td>
+                {switch $li['pay_status']}
+                {case -1}
+                <span class="label label-danger radius">支付失败</span>{/case}
+                {case 0}
+                <span class="label label-warning radius">未支付</span>{/case}
+                {case 1}
+                <span class="label label-success radius">已支付</span>{/case}
+                {default /}
+                {/switch}
+            </td>
             <td class="td-status">
                 {switch $li['status']}
                 {case 0}
@@ -70,7 +82,7 @@
         </tr>
         {/foreach}
         <tr>
-            <td class="text-r" id="page" colspan="10"></td>
+            <td class="text-r" id="page" colspan="11"></td>
         </tr>
         </tbody>
     </table>

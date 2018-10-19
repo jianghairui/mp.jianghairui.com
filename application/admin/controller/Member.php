@@ -82,9 +82,14 @@ class Member extends Common {
         if(!$exist) {
             return ajax('非法操作',-1);
         }
+        Db::startTrans();
         try {
             Db::table('mp_user')->where($map)->update(['status'=>1]);
+            $map[] = ['status','=',1];
+            Db::table('mp_user')->where($map)->setInc('credit',100);
+            Db::commit();
         }catch (\Exception $e) {
+            Db::rollback();
             return ajax($e->getMessage(),-1);
         }
         return ajax([],1);
@@ -114,9 +119,14 @@ class Member extends Common {
         }
         $map[] = ['id','in',$id_array];
 
+        Db::startTrans();
         try {
             $res = Db::table('mp_user')->where($map)->update(['status'=>1]);
+            $map[] = ['status','=',1];
+            Db::table('mp_user')->where($map)->setInc('credit',100);
+            Db::commit();
         }catch (\Exception $e) {
+            Db::rollback();
             return ajax($e->getMessage(),-1);
         }
         return ajax('共有' . $res . '条通过认证',1);
@@ -197,6 +207,7 @@ class Member extends Common {
         $perpage = input('param.perpage',10);
 
         $where = [];
+        $where[] = ['a.win','=',1];
 
         if(!is_null($param['status']) && $param['status'] !== '') {
             $where[] = ['a.status','=',$param['status']];
