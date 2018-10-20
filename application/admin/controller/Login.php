@@ -35,11 +35,11 @@ class Login extends Common {
             if($login_vcode !== session('login_vcode')) {
                 $this->error('验证码错误',url('Login/index'));
             }
-            session('login_vcode',null);
             $where['username'] = input('post.username');
             $where['password'] = md5(input('post.password') . config('login_key'));
             $result = Db::table('mp_admin')->where($where)->find();
             if($result) {
+                session('login_vcode',null);
                 Db::table('mp_admin')->where($where)->setInc('login_times');
                 Db::table('mp_admin')->where($where)->update(['last_login_time'=>time(),'last_login_ip'=>$this->getip()]);
                 session('mploginstatus',md5(input('post.username') . 'jiang'));

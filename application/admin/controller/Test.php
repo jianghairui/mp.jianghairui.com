@@ -24,7 +24,6 @@ class Test extends Controller {
 //        $auth = Auth::instance();
         $check = $auth->check('Test/testlist',1);
 
-
     }
 
     public function test() {

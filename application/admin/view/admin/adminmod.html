@@ -28,11 +28,11 @@
             <label class="form-label col-xs-4 col-sm-3"><span class="c-red">*</span>性别：</label>
             <div class="formControls col-xs-8 col-sm-9 skin-minimal">
                 <div class="radio-box">
-                    <input name="gender" type="radio" id="sex-1" value="1" checked>
+                    <input name="gender" type="radio" id="sex-1" value="1" {if $info['gender'] === 1}checked{/if}>
                     <label for="sex-1">男</label>
                 </div>
                 <div class="radio-box">
-                    <input type="radio" id="sex-2" value="2" name="gender">
+                    <input name="gender" type="radio" id="sex-2" value="2" {if $info['gender'] === 2}checked{/if}>
                     <label for="sex-2">女</label>
                 </div>
             </div>
@@ -53,6 +53,7 @@
             <label class="form-label col-xs-4 col-sm-3">角色：</label>
             <div class="formControls col-xs-8 col-sm-9"> <span class="select-box" style="width:150px;">
 			<select class="select" name="group_id" size="1">
+                <option value="" {if is_null($group_id)}selected{/if}>路人</option>
                 {foreach $list as $li}
                     <option value="{$li.id}" {if $group_id==$li['id']}selected{/if}>{$li.title}</option>
                 {/foreach}
@@ -95,29 +96,24 @@
                 username:{
                     required:true,
                     minlength:4,
-                    maxlength:16
+                    maxlength:30
                 },
                 password:{
-                    required:true,
+                    minlength:6,
+                    maxlength:30
                 },
                 password2:{
-                    required:true,
+                    minlength:6,
+                    maxlength:30,
                     equalTo: "#password"
                 },
                 gender:{
                     required:true,
                 },
-                tel:{
-                    isPhone:true,
-                },
                 email:{
                     email:true,
-                },
-                group_id:{
-                    required:true,
-                },
+                }
             },
-            onkeyup:false,
             focusCleanup:true,
             success:"valid",
             submitHandler:function(form){

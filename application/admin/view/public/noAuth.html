@@ -1,0 +1,25 @@
+<section class="container-fluid page-404 minWP text-c">
+    <p class="error-title">
+        <i class="Hui-iconfont va-m" style="font-size:80px;color:#555555">&#xe688;</i>
+    </p>
+    <p class="error-description" style="color:#555555">没有权限</p>
+
+    <p class="detail"></p>
+    <p class="jump" style="color:#555555">
+    &nbsp;&nbsp;&nbsp;&nbsp; <b id="wait">3</b> 秒后页面自动关闭
+    </p>
+
+</section>
+<script type="text/javascript" src="/lib/laypage/1.2/laypage.js"></script>
+<script type="text/javascript">
+    (function(){
+        var wait = document.getElementById('wait')
+        var interval = setInterval(function(){
+            var time = --wait.innerHTML;
+            if(time <= 0) {
+                layer_close();
+                clearInterval(interval);
+            };
+        }, 1000);
+    })();
+</script>
