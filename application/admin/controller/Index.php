@@ -287,10 +287,7 @@ class Index extends Common
         $this->assign('info',$info);
         return $this->fetch();
     }
-    //查看用户详情
-    public function userdetail() {
 
-    }
     //需求审核-通过
     public function reqPass() {
         $map[] = ['status','=',0];
@@ -383,6 +380,49 @@ class Index extends Common
     //订单矛盾后台最终审核,算未完成
     public function makeFailed() {
         //todo 给接单人扣除信誉,给发布人退款(退多少再说)
+    }
+    //其他方案
+    public function resolve_conflict() {
+        $percent = input('post.percent');
+        $id = input('post.id');
+        if(!preg_match('/(^1$)|(^\d{1,2}$)/',$percent)) {
+            return ajax('请输入正确数字',-1);
+        }
+        $map = [
+            ['id','=',$id],
+            ['status','=',3],
+//            ['pay_status','=',1]
+        ];
+        $exist = Db::table('mp_req')->where($map)->find();
+        if(!$exist) {
+            return ajax('订单不存在或状态已改变',-1);
+        }
+        $data['total_money'] = floatval($exist['order_price']);
+        $data['a_money'] = round($exist['order_price']*$percent/100,2);
+        $data['f_money'] = $data['total_money'] - $data['a_money'];
+        return ajax($data);
+    }
+
+    public function resolve_conflict_post() {
+        $percent = input('post.percent');
+        $id = input('post.id');
+        if(!preg_match('/(^1$)|(^\d{1,2}$)/',$percent)) {
+            return ajax('请输入正确数字',-1);
+        }
+        $map = [
+            ['id','=',$id],
+            ['status','=',3],
+//            ['pay_status','=',1]
+        ];
+        $exist = Db::table('mp_req')->where($map)->find();
+        if(!$exist) {
+            return ajax('订单不存在或状态已改变',-1);
+        }
+        $data['total_money'] = floatval($exist['order_price']);
+        $data['a_money'] = round($exist['order_price']*$percent/100,2);
+        $data['f_money'] = $data['total_money'] - $data['a_money'];
+        //todo 进行转账退款
+        return ajax('准备处理问题了TODO');
     }
 
 
