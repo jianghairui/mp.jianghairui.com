@@ -1,9 +1,10 @@
 <?php
 namespace app\index\controller;
 use think\Controller;
+use think\Db;
 class Test extends Controller
 {
-    public function index()
+    private function index()
     {
         $data1 = array(
             'username' => '姜海蕤',
@@ -25,15 +26,22 @@ class Test extends Controller
 //        halt($redis);
     }
 
-    public function getinfo() {
-//        $result = mredis()->LPop('prize_actor_list');
-//        halt($result);
+    private function test() {
+        $list = Db::table('mp_req')->where('id','not in',[18,19])->column('image');
+//        $arr = [];
+//        foreach ($list as $v) {
+//            foreach (unserialize($v) as $vv) {
+//                $arr[] = $vv;
+//                @unlink($vv);
+//            }
+//        }
+//        halt($arr);
     }
 
 
 
 
-    public function log() {
+    private function log() {
         $file= ROOT_PATH . '/notify.txt';
         $text='记录时间 ---' . date('Y-m-d H:i:s') . "\n" .var_export(['a','b','c'],true). '---END---' . "\n";
         if(false !== fopen($file,'a+')){

@@ -1,6 +1,7 @@
 <?php
 namespace app\index\controller;
 use EasyWeChat\Factory;
+use function GuzzleHttp\default_ca_bundle;
 use think\Db;
 use think\Exception;
 
@@ -206,7 +207,7 @@ class Index extends Common
             'out_trade_no' => $insert['order_sn'],
 //                'total_fee' => floatval($exist['real_price']) * 100,
             'total_fee' => 1,
-            'notify_url' => $this->domain . 'index/index/rechargeNotify',
+            'notify_url' => $this->domain . 'index/pay/rechargeNotify',
             'trade_type' => 'JSAPI',
             'openid' => $this->myinfo['openid'],
         ]);
@@ -227,56 +228,6 @@ class Index extends Common
         }
         return ajax($result);
     }
-    //充值VIP支付回调接口
-    public function rechargeNotify() {
-        $xml = file_get_contents('php://input');
-        $data = $this->xml2array($xml);
-        if($data) {
-            if($data['return_code'] == 'SUCCESS' && $data['result_code'] == 'SUCCESS') {
-                $map = [
-                    ['order_sn','=',$data['out_trade_no']],
-                    ['status','=',0],
-                ];
-                $exist = Db::table('mp_vip_pay')->where($map)->find();
-                if($exist) {
-                    $user = Db::table('mp_user')->where('openid','=',$exist['openid'])->find();
-                    $update_data = [
-                        'status' => 1,
-                        'trans_id' => $data['transaction_id'],
-                        'pay_time' => time(),
-                    ];
-                    try {
-                        Db::table('mp_vip_pay')->where('order_sn','=',$data['out_trade_no'])->update($update_data);
-                        if($user['vip'] == 1) {
-                            $update = [
-                                'vip' => 1,
-                                'vip_time' => $user['vip_time'] + $exist['days']*3600*24
-                            ];
-                        }else {
-                            $update = [
-                                'vip' => 1,
-                                'vip_time' => time() + $exist['days']*3600*24
-                            ];
-                        }
-                        Db::table('mp_user')->where('openid','=',$exist['openid'])->update($update);
-                    }catch (\Exception $e) {
-                        $this->log('rechargeNotify',$e->getMessage());
-                    }
-                }
-
-            }else if($data['return_code'] == 'SUCCESS' && $data['result_code'] != 'SUCCESS'){
-                $data['out_trade_no'] = '支付失败';
-            }
-            try {
-                $order_sn = isset($data['out_trade_no']) ? $data['out_trade_no'] : '';
-                Db::table('mp_paylog')->insert(['order_sn'=>$order_sn,'detail'=>json_encode($data),'type'=>2]);
-            }catch (\Exception $e) {
-                $this->log('rechargeNotify',$e->getMessage());
-            }
-        }
-        exit($this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']));
-    }
-
     //我正在申请的列表
     public function myApplying() {
         //todo 暂时不写
@@ -378,6 +329,7 @@ class Index extends Common
             Db::rollback();
             return ajax($e->getMessage(),-1);
         }
+        //todo 给接单人发一个通知(暂定)
         return ajax([],1);
     }
     //我的账户余额
@@ -407,6 +359,7 @@ class Index extends Common
         $openid = $this->myinfo['openid'];
 
         $this->checkPost($val);
+        $this->checkRealnameAuth();
         if(!is_currency($val['money'])) {
             return ajax([],5);
         }
@@ -586,18 +539,167 @@ class Index extends Common
         }
         exit($this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']));
     }
+    //接单人提交完成,更改订单状态
+    public function submitJob() {
+
+        $val['req_id'] = input('post.req_id');
+        $val['detail'] = input('post.detail');
+        $image = input('post.image');
+        $this->checkPost($val);
+        $map = [
+            ['id','=',$val['req_id']],
+            ['status','=',2]
+        ];
+        $exist = Db::table('mp_req')->where($map)->find();
+        if(!$exist || $exist['to_openid'] != $this->myinfo['openid']) {
+            return ajax([],10);
+        }
+        if(is_array($image) && !empty($image)) {
+            if(count($image) > 9) {
+                return ajax('最多上传9张图片',9);
+            }
+            foreach ($image as $v) {
+                if(!file_exists($v)) {
+                    return ajax($v,29);
+                }
+            }
+        }
+        $image_array = [];
+        foreach ($image as $v) {
+            $image_array[] = $this->rename_file($v);
+        }
+        $val['image'] = serialize($image_array);
+        Db::startTrans();
+        try {
+            Db::table('mp_req_progress')->insert($val);
+            $update_data = [
+                'status' => 3,
+                'submit_time' => time()
+            ];
+            Db::table('mp_req')->where($map)->update($update_data);
+            Db::commit();
+        }catch (\Exception $e) {
+            Db::rollback();
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax();
+
+    }
+    //应邀人取消订单,更改订单状态
+    public function pickerCancel() {
+        //todo 10分钟内取消 扣除信誉值,给接单人退款.10分钟后无法取消
+        $val['req_id'] = input('post.req_id');
+        $this->checkPost($val);
+        $map = [
+            ['id','=',$val['req_id']],
+            ['status','in',[2,3]]
+        ];
+        $exist = Db::table('mp_req')->where($map)->find();
+        if(!$exist || $exist['to_openid'] != $this->myinfo['openid']) {
+            return ajax([],10);
+        }
+        switch ($exist['status']) {
+            case 3:
+                return ajax([],33);break;
+            default:
+                if((time() - $exist['take_time']) > 10*60) {
+                    return ajax([],35);
+                }
+                //todo 给发布人退全款
+                Db::startTrans();
+                try {
+                    $update_req = [
+                        'cancel_time' => time(),
+                        'status' => -3
+                    ];
+                    $setting = Db::table('mp_setting')->where('id','=',1)->find();
+                    $user = Db::table('mp_user')->where('to_openid','=',$this->myinfo['openid'])->find();
+                    if(($user['credit'] - $setting['credit']) <= $setting['min_credit']) {
+                        $update_user['status'] = 2;
+                    }
+                    $update_user['credit'] = $user['credit'] - $setting['credit'];
+                    Db::table('mp_req')->where($map)->update($update_req);
+                    Db::table('mp_user')->where('to_openid','=',$this->myinfo['openid'])->update($update_user);
+                    Db::commit();
+                } catch (\Exception $e) {
+                    Db::rollback();
+                    return ajax($e->getMessage(),-1);
+                }
+                $arg = [
+                    'order_sn' => $exist['order_sn'],
+                    'reason' => '订单被取消'
+                ];
+                $this->asyn_refund($arg);
+                return ajax();
+        }
 
 
+    }
+    //发单人取消订单,更改订单状态
+    public function issuerCancel() {
+        $val['req_id'] = input('post.req_id');
+        $this->checkPost($val);
+        $map = [
+            ['id','=',$val['req_id']],
+            ['status','in',[0,1,2,3]]
+        ];
+        $exist = Db::table('mp_req')->where($map)->find();
+        if(!$exist || $exist['f_openid'] != $this->myinfo['openid']) {
+            return ajax([],10);
+        }
+        if(in_array($exist['status'],[0,1])) {
+            //todo 订单审核中、待接单状态直接取消,退全款
+            return ajax();
+        }
+        switch ($exist['status']) {
+            case 3:
+                return ajax([],33);break;
+            default:
+                //订单超过10分钟无法退款
+                if((time() - $exist['take_time']) > 10*60) {
+                    return ajax([],35);
+                }
+                //todo 订单已接单,退款,不退手续费
+                try {
+                    $update_req = [
+                        'cancel_time' => time(),
+                        'status' => -3
+                    ];
+                    Db::table('mp_req')->where($map)->update($update_req);
+                } catch (\Exception $e) {
+                    return ajax($e->getMessage(),-1);
+                }
+                $arg = [
+                    'order_sn' => $exist['order_sn'],
+                    'reason' => '订单被取消'
+                ];
+                $this->asyn_refund($arg,1);
+                return ajax();
+        }
 
+    }
 
-
-
-
-
-
-
-
-
+//创建异步退款任务
+    private function asyn_refund($arg,$type=0) {
+        $data = [
+            'order_sn' => $arg['order_sn'],
+            'reason' => $arg['reason']
+        ];
+        $cmd = $type ? 'wx_cancel_refund' : 'wx_refund';
+        $param = http_build_query($data);
+        $fp = fsockopen('ssl://' . $this->weburl, 443, $errno, $errstr, 20);
+        if (!$fp){
+            echo 'error fsockopen';
+        }else{
+            stream_set_blocking($fp,0);
+            $http = "GET /index/plan/".$cmd."?".$param." HTTP/1.1\r\n";
+            $http .= "Host: ".$this->weburl."\r\n";
+            $http .= "Connection: Close\r\n\r\n";
+            fwrite($fp,$http);
+            usleep(1000);
+            fclose($fp);
+        }
+    }
 
 
 
@@ -641,12 +743,6 @@ class Index extends Common
             return ajax([],-1);
         }
     }
-
-    public function test() {
-        halt(create_unique_number('P'));
-    }
-
-
 
 
 

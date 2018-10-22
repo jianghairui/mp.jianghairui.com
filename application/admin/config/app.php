@@ -22,5 +22,8 @@ return array(
     'auth'  => [
         'auth_on' => true,
         'auth_type'         => 1, // 认证方式，1为实时认证；2为登录认证。
+        'auth_out'          => [
+            'Index/index'
+        ]
     ]
 );

@@ -18,7 +18,7 @@ class Login extends Common {
         $code = input('post.code');
         $this->checkPost(['code'=>$code]);
         $app = Factory::miniProgram($this->mp_config);
-
+//        return ajax($code,999);
         $info = $app->auth->session($code);
 
         if(isset($info['errcode']) && $info['errcode'] !== 0) {

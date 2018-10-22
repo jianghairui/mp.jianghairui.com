@@ -1,5 +1,6 @@
 <aside class="Hui-aside">
     <div class="menu_dropdown bk_2">
+    {if session('username')===config('superman')}
         <dl id="menu-banner">
             <dt><i class="Hui-iconfont">&#xe613;</i> 首页设置<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
             <dd>
@@ -39,20 +40,6 @@
                 </ul>
             </dd>
         </dl>
-        <!--<dl id="menu-tongji">-->
-            <!--<dt><i class="Hui-iconfont">&#xe61a;</i> 系统统计<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>-->
-            <!--<dd>-->
-                <!--<ul>-->
-                    <!--<li><a data-href="charts-1.html" data-title="折线图" href="javascript:void(0)">折线图</a></li>-->
-                    <!--<li><a data-href="charts-2.html" data-title="时间轴折线图" href="javascript:void(0)">时间轴折线图</a></li>-->
-                    <!--<li><a data-href="charts-3.html" data-title="区域图" href="javascript:void(0)">区域图</a></li>-->
-                    <!--<li><a data-href="charts-4.html" data-title="柱状图" href="javascript:void(0)">柱状图</a></li>-->
-                    <!--<li><a data-href="charts-5.html" data-title="饼状图" href="javascript:void(0)">饼状图</a></li>-->
-                    <!--<li><a data-href="charts-6.html" data-title="3D柱状图" href="javascript:void(0)">3D柱状图</a></li>-->
-                    <!--<li><a data-href="charts-7.html" data-title="3D饼状图" href="javascript:void(0)">3D饼状图</a></li>-->
-                <!--</ul>-->
-            <!--</dd>-->
-        <!--</dl>-->
         <dl id="menu-system">
             <dt><i class="Hui-iconfont">&#xe62e;</i> 系统管理<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
             <dd>
@@ -62,5 +49,92 @@
                 </ul>
             </dd>
         </dl>
+    {else /}
+        {if in_array(strtolower('Banner'),$authlist)}
+        <dl id="banner">
+            <dt><i class="Hui-iconfont">&#xe613;</i> 首页设置<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
+            <dd>
+                <ul>
+                    {if in_array(strtolower('Banner/slideshow'),$authlist)}
+                    <li><a data-href="{:url('Banner/slideshow')}" data-title="轮播图" href="javascript:;">轮播图设置</a></li>
+                    {/if}
+                    {if in_array(strtolower('Banner/prizelist'),$authlist)}
+                    <li><a data-href="{:url('Banner/prizelist')}" data-title="活动设置" href="javascript:void(0)">活动设置</a></li>
+                    {/if}
+                </ul>
+            </dd>
+        </dl>
+        {/if}
+        {if in_array(strtolower('Index'),$authlist)}
+        <dl id="article">
+            <dt><i class="Hui-iconfont">&#xe616;</i> 需求管理<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
+            <dd>
+                <ul>
+                    {if in_array(strtolower('Index/rlist'),$authlist)}
+                    <li><a data-href="{:url('Index/rlist')}" data-title="需求列表" href="javascript:void(0)">需求列表</a></li>
+                    {/if}
+                    {if in_array(strtolower('Index/catelist'),$authlist)}
+                    <li><a data-href="{:url('Index/catelist')}" data-title="分类管理" href="javascript:void(0)">分类管理</a></li>
+                    {/if}
+                </ul>
+            </dd>
+        </dl>
+        {/if}
+        {if in_array(strtolower('Member'),$authlist)}
+        <dl id="member">
+            <dt><i class="Hui-iconfont">&#xe60d;</i> 会员管理<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
+            <dd>
+                <ul>
+                    {if in_array(strtolower('Member/memberlist'),$authlist)}
+                    <li><a data-href="{:url('Member/memberlist')}" data-title="会员列表" href="javascript:void(0);">会员列表</a></li>
+                    {/if}
+                    {if in_array(strtolower('Member/winnerlist'),$authlist)}
+                    <li><a data-href="{:url('Member/winnerlist')}" data-title="中奖纪录" href="javascript:void(0);">中奖纪录</a></li>
+                    {/if}
+                    {if in_array(strtolower('Member/withdraw'),$authlist)}
+                    <li><a data-href="{:url('Member/withdraw')}" data-title="提现管理" href="javascript:void(0);">提现管理</a></li>
+                    {/if}
+                    {if in_array(strtolower('Member/recharge'),$authlist)}
+                    <li><a data-href="{:url('Member/recharge')}" data-title="充值记录" href="javascript:void(0);">充值记录</a></li>
+                    {/if}
+                </ul>
+            </dd>
+        </dl>
+        {/if}
+        {if in_array(strtolower('Admin'),$authlist)}
+        <dl id="admin">
+            <dt><i class="Hui-iconfont">&#xe62d;</i> 管理员管理<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
+            <dd>
+                <ul>
+                    {if in_array(strtolower('Admin/adminlist'),$authlist)}
+                    <li><a data-href="{:url('Admin/adminlist')}" data-title="管理员列表" href="javascript:void(0)">管理员列表</a></li>
+                    {/if}
+                    {if in_array(strtolower('Admin/grouplist'),$authlist)}
+                    <li><a data-href="{:url('Admin/grouplist')}" data-title="角色管理" href="javascript:void(0)">角色管理</a></li>
+                    {/if}
+                    {if in_array(strtolower('Admin/rulelist'),$authlist)}
+                    <li><a data-href="{:url('Admin/rulelist')}" data-title="权限管理" href="javascript:void(0)">权限管理</a></li>
+                    {/if}
+                </ul>
+            </dd>
+        </dl>
+        {/if}
+        {if in_array(strtolower('System'),$authlist)}
+        <dl id="system">
+            <dt><i class="Hui-iconfont">&#xe62e;</i> 系统管理<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
+            <dd>
+                <ul>
+                    {if in_array(strtolower('System/setting'),$authlist)}
+                    <li><a data-href="{:url('System/setting')}" data-title="系统设置" href="javascript:void(0)">系统设置</a></li>
+                    {/if}
+                    {if in_array(strtolower('System/syslog'),$authlist)}
+                    <li><a data-href="{:url('System/syslog')}" data-title="系统日志" href="javascript:void(0)">系统日志</a></li>
+                    {/if}
+                </ul>
+            </dd>
+        </dl>
+        {/if}
+    {/if}
+
     </div>
 </aside>

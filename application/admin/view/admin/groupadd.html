@@ -16,6 +16,8 @@
             <label class="form-label col-xs-4 col-sm-3">配置权限：</label>
             <div class="formControls col-xs-8 col-sm-9">
                 {foreach $list as $li}
+                {if $li['name'] === 'Admin'}
+                {if session('username')===config('superman')}
                 <dl class="permission-list">
                     <dt>
                         <label>
@@ -28,7 +30,7 @@
                             <dd style="margin-left: 0px;">
                                 {foreach $li['child'] as $v}
                                 <label title="{$v.name}" style="display:inline-block;width: 180px;">
-                                        <input type="checkbox" value="{$v.id}" name="check[]" id="user-Character-1-0-0">
+                                    <input type="checkbox" value="{$v.id}" name="check[]" id="user-Character-1-0-0">
                                     {$v.title}
                                 </label>
                                 {/foreach}
@@ -36,6 +38,31 @@
                         </dl>
                     </dd>
                 </dl>
+                {/if}
+
+                {else /}
+                <dl class="permission-list">
+                    <dt>
+                        <label>
+                            <input type="checkbox" value="{$li.id}" name="check[]" id="user-Character-1">
+                            {$li.title}({$li.name})
+                        </label>
+                    </dt>
+                    <dd>
+                        <dl class="cl">
+                            <dd style="margin-left: 0px;">
+                                {foreach $li['child'] as $v}
+                                <label title="{$v.name}" style="display:inline-block;width: 180px;">
+                                    <input type="checkbox" value="{$v.id}" name="check[]" id="user-Character-1-0-0">
+                                    {$v.title}
+                                </label>
+                                {/foreach}
+                            </dd>
+                        </dl>
+                    </dd>
+                </dl>
+                {/if}
+
                 {/foreach}
 
             </div>

@@ -46,7 +46,7 @@ class Login extends Common {
                 session('admin_id',$result['id']);
                 session('username',$result['username']);
                 session('realname',$result['realname']);
-                session('login_times',$result['login_times']);
+                session('login_times',$result['login_times'] + 1);
                 session('last_login_time',$result['last_login_time']);
                 session('last_login_ip',$result['last_login_ip']);
 

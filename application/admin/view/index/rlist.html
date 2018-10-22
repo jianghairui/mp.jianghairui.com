@@ -7,7 +7,8 @@
         <button onclick="removeIframe()" class="btn btn-primary radius">关闭选项卡</button>
         <span class="select-box inline">
 		<select name="status" id="status" class="select">
-			<option value="">全部分类</option>
+			<option value="">全部</option>
+			<option value="-3" {if $status === "-3"}selected{/if}>已取消</option>
 			<option value="-2" {if $status === "-2"}selected{/if}>无人接</option>
 			<option value="-1" {if $status === "-1"}selected{/if}>未通过</option>
 			<option value="0" {if $status === "0"}selected{/if}>待审核</option>
@@ -60,6 +61,9 @@
                     <td>{$li.create_time|date="Y-m-d H:i"}</td>
                     <td class="td-status">
                         {switch $li['status']}
+                        {case -3}
+                        <span class="label label-default radius">已取消</span>
+                        {/case}
                         {case -2}
                         <span class="label label-danger radius">无人接</span>
                         {/case}

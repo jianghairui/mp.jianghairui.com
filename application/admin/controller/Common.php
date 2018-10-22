@@ -45,18 +45,16 @@ class Common extends Controller {
                 $this->error('请登录后操作',url('Login/index'));
             }
         }
-//        if(session('username') !== config('superman')) {
-//            $auth = new Auth();
-//        }
+
 
     }
 
-    public function needSession() {
+    private function needSession() {
         $noNeedSession = [
             'Login/index',
             'Login/vcode',
             'Login/login',
-//            'Login/test',
+            'Login/logout',
 //            'Index/test',
             'Member/transfer',
             'Member/sendpasstpl',
@@ -66,6 +64,17 @@ class Common extends Controller {
             return true;
         }else {
             if(session('username') && session('mploginstatus') && session('mploginstatus') == md5(session('username') . 'jiang')) {
+                if(session('username') !== config('superman')) {
+                    $auth = new Auth();
+                    $bool = $auth->check($this->cmd,session('admin_id'));
+                    if(!$bool) {
+                        if(request()->isPost()) {
+                            throw new HttpResponseException(ajax('没有权限',-1));
+                        }else {
+                            exit($this->fetch('public/noAuth'));
+                        }
+                    }
+                }
                 return true;
             }else {
                 return false;
@@ -193,7 +202,6 @@ class Common extends Controller {
 
     protected function billingLog($insert_data = []) {
         $insert_data['create_time'] = time();
-        $insert_data['openid'] = $this->myinfo['openid'];
         Db::table('mp_billing')->insert($insert_data);
     }
 

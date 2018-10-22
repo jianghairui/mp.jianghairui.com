@@ -167,6 +167,33 @@ class Admin extends Common {
         return ajax();
     }
 
+    public function admin_multidel() {
+        $ids = input('post.check');
+        if(empty($ids)) {
+            return ajax('未选择删除项',-1);
+        }
+        $map1 = [
+            ['id','in',$ids],
+            ['id','<>',1]
+        ];
+        $map2 = [
+            ['uid','in',$ids],
+            ['uid','<>',1]
+        ];
+        $map3 = [
+            ['admin_id','in',$ids],
+            ['admin_id','<>',1]
+        ];
+        try {
+            Db::table('mp_admin')->where($map1)->delete();
+            Db::table('mp_auth_group_access')->where($map2)->delete();
+            Db::table('mp_syslog')->where($map3)->delete();
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax();
+    }
+
     public function adminStop() {
         $id = input('post.id');
         if($id == 1) {
@@ -347,7 +374,6 @@ class Admin extends Common {
         return ajax([]);
     }
 
-
     public function groupdel() {
         $gid = input('post.gid');
         try{
@@ -390,5 +416,7 @@ class Admin extends Common {
         }
         return $arr;
     }
+
+
 
 }

@@ -15,7 +15,6 @@ class Pay extends Common {
     public function pay() {
 
         $val['order_sn'] = input('post.order_sn');
-//        $val['order_sn'] = 'R153916990348509600';
         $this->checkPost($val);
         $map[] = ['order_sn','=',$val['order_sn']];
         $map[] = ['pay_status','=',0];
@@ -29,9 +28,8 @@ class Pay extends Common {
             $result = $app->order->unify([
                 'body' => $exist['title'],
                 'out_trade_no' => $val['order_sn'],
-//                'total_fee' => floatval($exist['real_price']) * 100,
-                'total_fee' => 1,
-
+                'total_fee' => floatval($exist['real_price']) * 100,
+//                'total_fee' => 1,
                 'notify_url' => $this->domain . 'index/pay/notify',
                 'trade_type' => 'JSAPI',
                 'openid' => $this->myinfo['openid'],
@@ -119,6 +117,55 @@ class Pay extends Common {
         }
         exit($this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']));
 
+    }
+    //充值VIP支付回调接口
+    public function rechargeNotify() {
+        $xml = file_get_contents('php://input');
+        $data = $this->xml2array($xml);
+        if($data) {
+            if($data['return_code'] == 'SUCCESS' && $data['result_code'] == 'SUCCESS') {
+                $map = [
+                    ['order_sn','=',$data['out_trade_no']],
+                    ['status','=',0],
+                ];
+                $exist = Db::table('mp_vip_pay')->where($map)->find();
+                if($exist) {
+                    $user = Db::table('mp_user')->where('openid','=',$exist['openid'])->find();
+                    $update_data = [
+                        'status' => 1,
+                        'trans_id' => $data['transaction_id'],
+                        'pay_time' => time(),
+                    ];
+                    try {
+                        Db::table('mp_vip_pay')->where('order_sn','=',$data['out_trade_no'])->update($update_data);
+                        if($user['vip'] == 1) {
+                            $update = [
+                                'vip' => 1,
+                                'vip_time' => $user['vip_time'] + $exist['days']*3600*24
+                            ];
+                        }else {
+                            $update = [
+                                'vip' => 1,
+                                'vip_time' => time() + $exist['days']*3600*24
+                            ];
+                        }
+                        Db::table('mp_user')->where('openid','=',$exist['openid'])->update($update);
+                    }catch (\Exception $e) {
+                        $this->log('rechargeNotify',$e->getMessage());
+                    }
+                }
+
+            }else if($data['return_code'] == 'SUCCESS' && $data['result_code'] != 'SUCCESS'){
+                $data['out_trade_no'] = '支付失败';
+            }
+            try {
+                $order_sn = isset($data['out_trade_no']) ? $data['out_trade_no'] : '';
+                Db::table('mp_paylog')->insert(['order_sn'=>$order_sn,'detail'=>json_encode($data),'type'=>2]);
+            }catch (\Exception $e) {
+                $this->log('rechargeNotify',$e->getMessage());
+            }
+        }
+        exit($this->array2xml(['return_code'=>'SUCCESS','return_msg'=>'OK']));
     }
 
 

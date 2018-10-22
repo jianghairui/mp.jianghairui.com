@@ -164,14 +164,13 @@ class Plan extends Controller {
             //Db::table('mp_test')->insert(['cmd'=>'Plan/sendTpl','detail'=>json_encode($result)]);
         }
     }
-
     //执行的计划任务
     public function reqStatus() {
         $_SERVER['REMOTE_ADDR'] = '47.104.130.39';
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
             $cmd = request()->controller() . '/' . request()->action();
             $map[] = ['pay_status','=',1];
-            $map[] = ['status','=',1];
+            $map[] = ['status','in',[0,1]];
             $map[] = ['end_time','<=',time()];
             //订单到期没人接更改状态为无人接并进行退款
             $endtime_array = Db::table('mp_req')->where($map)->column('order_sn');
@@ -234,7 +233,7 @@ class Plan extends Controller {
             $autoComplete = Db::table('mp_req')->where($map3)->select();
             if($autoComplete) {
                 $log = [
-                    'type' => 6,
+                    'type' => 3,
                     'detail' => json_encode($autoComplete),
                     'cmd' => $cmd
                 ];
@@ -284,7 +283,7 @@ class Plan extends Controller {
             fclose($fp);
         }
     }
-    //退款
+    //全额退款
     public function wx_refund() {
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
             $cmd = request()->controller() . '/' . request()->action();
@@ -292,7 +291,7 @@ class Plan extends Controller {
             $reason = input('param.reason', '');
             $map[] = ['order_sn', '=', $order_sn];
             $map[] = ['pay_status', '=', 1];
-            $map[] = ['status', 'in', [-2, 5]];
+            $map[] = ['status', 'in', [-1,-3,-2,5]];
             $exist = Db::table('mp_req')->where($map)->find();
             if ($exist) {
                 try {
@@ -304,36 +303,106 @@ class Plan extends Controller {
                 $app = Factory::payment($this->mp_config);
                 $transactionId = $exist['trans_id'];
                 $refundNumber = $order_sn;
-                $totalFee = floatval($exist['real_price']);
-                $refundFee = floatval($exist['real_price']);
+                $totalFee = floatval($exist['real_price'])*100;
+                $refundFee = floatval($exist['real_price'])*100;
                 $config = [
                     'refund_desc' => $reason,
                 ];
                 // 参数分别为：微信订单号、商户退款单号、订单金额、退款金额、其他参数
                 $result = $app->refund->byTransactionId($transactionId, $refundNumber, $totalFee, $refundFee, $config);
                 if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
-                    $paylog = [
+                    $refundlog = [
+                        'order_sn' => $order_sn,
                         'detail' => json_encode($result),
-                        'cmd' => 'Plan/refund',
-                        'type' => 3
+                        'cmd' => $cmd,
+                        'type' => 3,
+                        'time' => time()
                     ];
-                    Db::table('mp_planlog')->insert($paylog);
+                    Db::table('mp_req_refund')->insert($refundlog);
                 } else if (isset($result['err_code']) && $result['err_code'] === 'NOTENOUGH') {
                     $config['refund_account'] = 'REFUND_SOURCE_RECHARGE_FUNDS';
                     $result = $app->refund->byTransactionId($transactionId, $refundNumber, $totalFee, $refundFee, $config);
-                    $paylog = [
+                    $refundlog = [
+                        'order_sn' => $order_sn,
                         'detail' => json_encode($result),
-                        'cmd' => 'Plan/refund',
-                        'type' => 4
+                        'cmd' => $cmd,
+                        'type' => 4,
+                        'time' => time()
                     ];
-                    Db::table('mp_planlog')->insert($paylog);
+                    Db::table('mp_req_refund')->insert($refundlog);
                 } else {
-                    $paylog = [
+                    $refundlog = [
+                        'order_sn' => $order_sn,
                         'detail' => json_encode($result),
-                        'cmd' => 'Plan/refund',
-                        'type' => 5
+                        'cmd' => $cmd,
+                        'type' => 5,
+                        'time' => time()
                     ];
-                    Db::table('mp_planlog')->insert($paylog);
+                    Db::table('mp_req_refund')->insert($refundlog);
+                }
+
+            } else {
+                $this->log($cmd, 'order_sn not exist:' . $order_sn);
+            }
+        }
+
+    }
+    //取消订单退款(不退手续费)
+    public function wx_cancel_refund() {
+        if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
+            $cmd = request()->controller() . '/' . request()->action();
+            $order_sn = input('param.order_sn');
+            $reason = input('param.reason', '');
+            $map[] = ['order_sn', '=', $order_sn];
+            $map[] = ['pay_status', '=', 1];
+            $map[] = ['status', 'in', [-3,-2,5]];
+            $exist = Db::table('mp_req')->where($map)->find();
+            if ($exist) {
+                try {
+                    Db::table('mp_req')->where($map)->update(['pay_status' => 2]);//更改订单支付状态
+                } catch (\Exception $e) {
+                    $this->log($cmd, $e->getMessage());
+                }
+                //执行退款操作
+                $app = Factory::payment($this->mp_config);
+                $transactionId = $exist['trans_id'];
+                $refundNumber = $order_sn;
+                $totalFee = floatval($exist['order_price'])*100;
+                $refundFee = floatval($exist['order_price'])*100;
+                $config = [
+                    'refund_desc' => $reason,
+                ];
+                // 参数分别为：微信订单号、商户退款单号、订单金额、退款金额、其他参数
+                $result = $app->refund->byTransactionId($transactionId, $refundNumber, $totalFee, $refundFee, $config);
+                if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
+                    $refundlog = [
+                        'order_sn' => $order_sn,
+                        'detail' => json_encode($result),
+                        'cmd' => $cmd,
+                        'type' => 3,
+                        'time' => time()
+                    ];
+                    Db::table('mp_req_refund')->insert($refundlog);
+                } else if (isset($result['err_code']) && $result['err_code'] === 'NOTENOUGH') {
+                    $config['refund_account'] = 'REFUND_SOURCE_RECHARGE_FUNDS';
+                    $result = $app->refund->byTransactionId($transactionId, $refundNumber, $totalFee, $refundFee, $config);
+                    $refundlog = [
+                        'order_sn' => $order_sn,
+                        'detail' => json_encode($result),
+                        'cmd' => $cmd,
+                        'type' => 4,
+                        'time' => time()
+                    ];
+                    Db::table('mp_req_refund')->insert($refundlog);
+                } else {
+                    $refundlog = [
+                        'order_sn' => $order_sn,
+                        'detail' => json_encode($result),
+                        'cmd' => $cmd,
+                        'type' => 5,
+                        'time' => time()
+                    ];
+                    Db::table('mp_req_refund')->insert($refundlog);
                 }
 
             } else {
@@ -343,58 +412,6 @@ class Plan extends Controller {
 
     }
 
-
-
-
-
-
-
-/***********以下为调试用接口**************/
-    private function refund() {
-
-            $app = Factory::payment($this->mp_config);
-            $transactionId = '';
-            $refundNumber = 'R153916990348509600';
-            $totalFee = 1;
-            $refundFee = 1;
-            // 参数分别为：微信订单号、商户退款单号、订单金额、退款金额、其他参数
-            $config = [
-                'refund_desc' => '测试',
-            ];
-            $result = $app->refund->byTransactionId($transactionId,$refundNumber,$totalFee,$refundFee,$config);
-            if($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
-                $paylog = [
-                    'detail'    =>  json_encode($result),
-                    'cmd'   =>  'Plan/refund',
-                    'type' => 3
-                ];
-                Db::table('mp_planlog')->insert($paylog);
-            }else if(isset($result['err_code']) && $result['err_code'] === 'NOTENOUGH'){
-                $config['refund_account'] = 'REFUND_SOURCE_RECHARGE_FUNDS';
-                $result = $app->refund->byTransactionId($transactionId,$refundNumber,$totalFee,$refundFee,$config);
-                $paylog = [
-                    'detail'    =>  json_encode($result),
-                    'cmd'   =>  'Plan/refund',
-                    'type' => 4
-                ];
-                Db::table('mp_planlog')->insert($paylog);
-            }else {
-                $paylog = [
-                    'detail'    =>  json_encode($result),
-                    'cmd'   =>  'Plan/refund',
-                    'type' => 5
-                ];
-                Db::table('mp_planlog')->insert($paylog);
-            }
-            halt($result);
-
-    }
-
-    private function test() {
-//        $cmd = request()->controller() . '/' . request()->action();
-//        $this->log($cmd,'SQLSTATE[42S02]: Base table or view not found: 1146 Table \'mp.mp_tests\' doesn\'t exist');
-//        halt('YES');
-    }
 
 
     protected function log($cmd,$str) {
@@ -407,6 +424,26 @@ class Plan extends Controller {
         }
         die();
     }
+
+/***********以下为调试用接口**************/
+    private function refund() {
+            $app = Factory::payment($this->mp_config);
+            $transactionId = '';
+            $refundNumber = 'R153916990348509600';
+            $totalFee = 1;
+            $refundFee = 1;
+            // 参数分别为：微信订单号、商户退款单号、订单金额、退款金额、其他参数
+            $config = [
+                'refund_desc' => '手动退款',
+            ];
+            $result = $app->refund->byTransactionId($transactionId,$refundNumber,$totalFee,$refundFee,$config);
+            halt($result);
+    }
+
+
+
+
+
 
 
 

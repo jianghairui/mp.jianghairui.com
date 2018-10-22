@@ -14,6 +14,7 @@ class Common extends Controller {
     protected $mp_config = [];
     protected $myinfo = [];
     protected $domain = '';
+    protected $weburl = '';
 
 
     public function initialize()
@@ -23,6 +24,7 @@ class Common extends Controller {
             'openid' => '',
             'session_key' => ''
         ];
+        $this->weburl = 'mp.jianghairui.com';
         $this->domain = 'https://mp.jianghairui.com/';
         $this->mp_config = [
             'app_id' => 'wx0d6f8a78265b1229',
@@ -49,8 +51,9 @@ class Common extends Controller {
         $noneed = [
             'Login/login',
             'Pay/notify',
-            'Index/rechargenotify',
+            'Pay/rechargenotify',
             'Index/prizenotify',
+            'Index/test',
             'Index/test',
         ];
         if (in_array(request()->controller() . '/' . request()->action(), $noneed)) {

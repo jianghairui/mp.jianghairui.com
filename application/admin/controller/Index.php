@@ -1,12 +1,18 @@
 <?php
 namespace app\admin\controller;
+use my\Auth;
 use think\Db;
 use think\Exception;
+use EasyWeChat\Factory;
+
 class Index extends Common
 {
 
     //首页
     public function index() {
+        $auth = new Auth();
+        $authlist = $auth->getAuthList(session('admin_id'));
+        $this->assign('authlist',$authlist);
         return $this->fetch();
     }
     //分类列表
@@ -223,8 +229,7 @@ class Index extends Common
             return ajax([],-1);
         }
     }
-
-
+    //查看需求列表
     public function rlist() {
         $param['status'] = input('param.status','');
         $param['logmin'] = input('param.logmin');
@@ -271,14 +276,22 @@ class Index extends Common
         $this->assign('status',$param['status']);
         return $this->fetch();
     }
-
+    //查看需求详情
     public function detail() {
         $rid = input('param.rid');
-        $info = Db::table('mp_req')->where('id','=',$rid)->find();
+        $info = Db::table('mp_req')->alias('r')
+            ->join('mp_cate c','r.cate_id=c.id','left')
+            ->where('r.id','=',$rid)
+            ->field('r.*,c.cate_name')
+            ->find();
         $this->assign('info',$info);
         return $this->fetch();
     }
+    //查看用户详情
+    public function userdetail() {
 
+    }
+    //需求审核-通过
     public function reqPass() {
         $map[] = ['status','=',0];
         $map[] = ['pay_status','=',1];
@@ -296,7 +309,7 @@ class Index extends Common
         }
         return ajax([],1);
     }
-
+    //需求审核-拒绝
     public function reqReject() {
         $map[] = ['status','=',0];
         $map[] = ['pay_status','=',1];
@@ -312,8 +325,79 @@ class Index extends Common
         }catch (\Exception $e) {
             return ajax($e->getMessage(),-1);
         }
+        //todo 退款
+        $arg = [
+            'order_sn' => $exist['order_sn'],
+            'reason' => '需求未通过审核'
+        ];
+        $this->asyn_refund($arg);
         return ajax([],1);
     }
+    //需求审核-批量通过
+    public function multiPass() {
+        $map[] = ['status','=',0];
+        $map[] = ['pay_status','=',1];
+        $id_array = input('post.check');
+        if(empty($id_array)) {
+           return ajax('请选择审核对象',-1);
+        }
+        $map[] = ['id','in',$id_array];
+
+        try {
+            $res = Db::table('mp_req')->where($map)->update(['status'=>1]);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax('共有' . $res . '条通过审核',1);
+    }
+    //需求审核-批量拒绝
+    public function multiReject() {
+        $map[] = ['status','=',0];
+        $map[] = ['pay_status','=',1];
+        $id_array = input('post.check');
+        if(empty($id_array)) {
+            return ajax('请选择审核对象',-1);
+        }
+        $map[] = ['id','in',$id_array];
+        $exist = Db::table('mp_req')->where($map)->find();
+        try {
+            $res = Db::table('mp_req')->where($map)->update(['status'=>-1]);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        //todo 退款
+        foreach ($exist as $v) {
+            $arg = [
+                'order_sn' => $v['order_sn'],
+                'reason' => '需求未通过审核'
+            ];
+            $this->asyn_refund($arg);
+        }
+
+        return ajax('共有' . $res . '条未通过',1);
+    }
+    //订单矛盾后台最终审核,算完成
+    public function makeSuccessful() {
+        //todo 给接单人转账
+    }
+    //订单矛盾后台最终审核,算未完成
+    public function makeFailed() {
+        //todo 给接单人扣除信誉,给发布人退款(退多少再说)
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     public function reqShow() {
         $map[] = ['id','=',input('post.id',0)];
@@ -335,38 +419,30 @@ class Index extends Common
         return ajax([],1);
     }
 
-    public function multiPass() {
-        $map[] = ['status','=',0];
-        $map[] = ['pay_status','=',1];
-        $id_array = input('post.check');
-        if(empty($id_array)) {
-           return ajax('请选择审核对象',-1);
-        }
-        $map[] = ['id','in',$id_array];
 
-        try {
-            $res = Db::table('mp_req')->where($map)->update(['status'=>1]);
-        }catch (\Exception $e) {
-            return ajax($e->getMessage(),-1);
-        }
-        return ajax('共有' . $res . '条通过审核',1);
-    }
 
-    public function multiReject() {
-        $map[] = ['status','=',0];
-        $map[] = ['pay_status','=',1];
-        $id_array = input('post.check');
-        if(empty($id_array)) {
-            return ajax('请选择审核对象',-1);
-        }
-        $map[] = ['id','in',$id_array];
 
-        try {
-            $res = Db::table('mp_req')->where($map)->update(['status'=>-1]);
-        }catch (\Exception $e) {
-            return ajax($e->getMessage(),-1);
+
+//创建异步退款任务
+    private function asyn_refund($arg,$type=0) {
+        $data = [
+            'order_sn' => $arg['order_sn'],
+            'reason' => $arg['reason']
+        ];
+        $cmd = $type ? 'wx_cancel_refund' : 'wx_refund';
+        $param = http_build_query($data);
+        $fp = fsockopen('ssl://' . $this->weburl, 443, $errno, $errstr, 20);
+        if (!$fp){
+            echo 'error fsockopen';
+        }else{
+            stream_set_blocking($fp,0);
+            $http = "GET /index/plan/".$cmd."?".$param." HTTP/1.1\r\n";
+            $http .= "Host: ".$this->weburl."\r\n";
+            $http .= "Connection: Close\r\n\r\n";
+            fwrite($fp,$http);
+            usleep(1000);
+            fclose($fp);
         }
-        return ajax('共有' . $res . '条未通过',1);
     }
 
 
@@ -376,42 +452,4 @@ class Index extends Common
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public function test() {
-        $map[] = ['id','between','38,45'];
-        $res = Db::table('mp_cate')->where($map)->select();
-        halt($res);
-        //        Db::table('one')->insert(['name'=>'张涛','age'=>24,'sex'=>1]);
-//        $tableinfo = Db::table('one')->getLastInsID();
-//        $where = [];
-//        $where = ['name'=>['like','%an%'],'age'=>25];
-
-//        $where['name'] = ['like','%an%'];
-//        $where['age'] = ['eq',25];
-
-//        $list = Db::table('one')->where($where)->whereOr(['sex'=>0])->select();
-//        halt($list);
-    }
 }

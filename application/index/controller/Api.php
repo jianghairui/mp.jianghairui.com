@@ -165,7 +165,6 @@ class Api extends Common {
         $this->checkPost($val);
         $val['intro_openid'] = input('post.intro_openid');
         $val['to_openid'] = $this->myinfo['openid'];
-
         $this->checkRealnameAuth();
 
         if($val['intro_openid'] == $this->myinfo['openid']) {
@@ -181,6 +180,7 @@ class Api extends Common {
 
         $map[] = ['id','=',$val['rid']];
         $map[] = ['status','=',1];
+        $map[] = ['end_time','<',time()];
 
         $req_exist = Db::table('mp_req')->where($map)->find();
         if(!$req_exist) {

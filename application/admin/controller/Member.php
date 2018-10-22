@@ -60,7 +60,14 @@ class Member extends Common {
     }
     //会员详情
     public function userdetail() {
-        $where[] = ['u.id','=',input('param.id')];
+        $openid = input('param.openid');
+        $id = input('param.id');
+        if($id) {
+            $where[] = ['u.id','=',$id];
+        }
+        if($openid) {
+            $where[] = ['u.openid','=',$openid];
+        }
         try {
             $info = Db::table('mp_user')->alias('u')
                 ->join('mp_userinfo i','u.openid=i.openid','left')
@@ -84,9 +91,8 @@ class Member extends Common {
         }
         Db::startTrans();
         try {
-            Db::table('mp_user')->where($map)->update(['status'=>1]);
-            $map[] = ['status','=',1];
             Db::table('mp_user')->where($map)->setInc('credit',100);
+            Db::table('mp_user')->where($map)->update(['status'=>1]);
             Db::commit();
         }catch (\Exception $e) {
             Db::rollback();
@@ -121,9 +127,8 @@ class Member extends Common {
 
         Db::startTrans();
         try {
-            $res = Db::table('mp_user')->where($map)->update(['status'=>1]);
-            $map[] = ['status','=',1];
             Db::table('mp_user')->where($map)->setInc('credit',100);
+            $res = Db::table('mp_user')->where($map)->update(['status'=>1]);
             Db::commit();
         }catch (\Exception $e) {
             Db::rollback();
