@@ -375,11 +375,88 @@ class Index extends Common
     }
     //订单矛盾后台最终审核,算完成
     public function makeSuccessful() {
-        //todo 给接单人转账
+        $id = input('post.id');
+        $map = [
+            ['id','=',$id],
+            ['status','=',3],
+            ['pay_status','=',1]
+        ];
+        $exist = Db::table('mp_req')->where($map)->find();
+        if(!$exist) {
+            return ajax('订单不存在或状态已改变',-1);
+        }
+        $data['total_money'] = floatval($exist['order_price']);
+        $data['a_money'] = floatval($exist['order_price']);
+        $data['f_money'] = 0;
+        Db::startTrans();
+        try {
+            $update_req = [
+                'status' => 6,
+                'finish_time' => time()
+            ];
+            $data['req_id'] = $id;
+            $billing = [
+                'req_id' => $id,
+                'openid' => $exist['to_openid'],
+                'detail' => '订单收入',
+                'money' => $data['f_money'],
+                'type' => 1,
+                'create_time' => time()
+            ];
+            Db::table('mp_req')->where($map)->update($update_req);
+            Db::table('mp_user')->where('openid','=',$exist['to_openid'])->setInc('balance',$data['a_money']);
+            Db::table('mp_req_dispute')->insert($data);
+            Db::table('mp_billing')->insert($billing);
+            Db::commit();
+        }catch (\Exception $e) {
+            Db::rollback();
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax();
     }
     //订单矛盾后台最终审核,算未完成
     public function makeFailed() {
-        //todo 给接单人扣除信誉,给发布人退款(退多少再说)
+        $id = input('post.id');
+        $map = [
+            ['id','=',$id],
+            ['status','=',3],
+            ['pay_status','=',1]
+        ];
+        $exist = Db::table('mp_req')->where($map)->find();
+        if(!$exist) {
+            return ajax('订单不存在或状态已改变',-1);
+        }
+        $data['money'] = floatval($exist['real_price']);
+        $data['a_money'] = 0;
+        $data['f_money'] = floatval($exist['real_price']);
+        Db::startTrans();
+        try {
+            $update_req = [
+                'status' => 6,
+                'finish_time' => time()
+            ];
+            $data['req_id'] = $id;
+            Db::table('mp_req')->where($map)->update($update_req);
+            $setting = Db::table('mp_setting')->where('id','=',1)->find();
+            $user = Db::table('mp_user')->where('to_openid','=',$exist['to_openid'])->find();
+            if(($user['credit'] - $setting['credit']) <= $setting['min_credit']) {
+                $update_user['status'] = 2;
+            }
+            $update_user['credit'] = $user['credit'] - $setting['credit'];
+            Db::table('mp_user')->where('openid','=',$exist['to_openid'])->update($update_user);
+            Db::table('mp_req_dispute')->insert($data);
+            Db::commit();
+        }catch (\Exception $e) {
+            Db::rollback();
+            return ajax($e->getMessage(),-1);
+        }
+        $arg = [
+            'order_sn' => $exist['order_sn'],
+            'f_money' => $data['f_money'],
+            'reason' => '订单退款'
+        ];
+        $this->asyn_dispute_refund($arg);
+        return ajax();
     }
     //其他方案
     public function resolve_conflict() {
@@ -391,7 +468,7 @@ class Index extends Common
         $map = [
             ['id','=',$id],
             ['status','=',3],
-//            ['pay_status','=',1]
+            ['pay_status','=',1]
         ];
         $exist = Db::table('mp_req')->where($map)->find();
         if(!$exist) {
@@ -412,17 +489,47 @@ class Index extends Common
         $map = [
             ['id','=',$id],
             ['status','=',3],
-//            ['pay_status','=',1]
+            ['pay_status','=',1]
         ];
         $exist = Db::table('mp_req')->where($map)->find();
         if(!$exist) {
             return ajax('订单不存在或状态已改变',-1);
         }
-        $data['total_money'] = floatval($exist['order_price']);
+        $data['money'] = floatval($exist['order_price']);
         $data['a_money'] = round($exist['order_price']*$percent/100,2);
-        $data['f_money'] = $data['total_money'] - $data['a_money'];
-        //todo 进行转账退款
-        return ajax('准备处理问题了TODO');
+        $data['f_money'] = $data['money'] - $data['a_money'];
+        //todo 更改订单状态,转账退款
+        Db::startTrans();
+        try {
+            $update_req = [
+                'status' => 6,
+                'finish_time' => time()
+            ];
+            $data['req_id'] = $id;
+            $billing = [
+                'req_id' => $id,
+                'openid' => $exist['to_openid'],
+                'detail' => '订单收入',
+                'money' => $data['f_money'],
+                'type' => 1,
+                'create_time' => time()
+            ];
+             Db::table('mp_req')->where($map)->update($update_req);
+             Db::table('mp_user')->where('openid','=',$exist['to_openid'])->setInc('balance',$data['a_money']);
+             Db::table('mp_req_dispute')->insert($data);
+             Db::table('mp_billing')->insert($billing);
+             Db::commit();
+        }catch (\Exception $e) {
+            Db::rollback();
+            return ajax($e->getMessage(),-1);
+        }
+        $arg = [
+            'order_sn' => $exist['order_sn'],
+            'f_money' => $data['f_money'],
+            'reason' => '订单退款'
+        ];
+        $this->asyn_dispute_refund($arg);
+        return ajax();
     }
 
 
@@ -467,7 +574,7 @@ class Index extends Common
     private function asyn_refund($arg,$type=0) {
         $data = [
             'order_sn' => $arg['order_sn'],
-            'reason' => $arg['reason']
+            'reason' => $arg['reason'],
         ];
         $cmd = $type ? 'wx_cancel_refund' : 'wx_refund';
         $param = http_build_query($data);
@@ -477,6 +584,27 @@ class Index extends Common
         }else{
             stream_set_blocking($fp,0);
             $http = "GET /index/plan/".$cmd."?".$param." HTTP/1.1\r\n";
+            $http .= "Host: ".$this->weburl."\r\n";
+            $http .= "Connection: Close\r\n\r\n";
+            fwrite($fp,$http);
+            usleep(1000);
+            fclose($fp);
+        }
+    }
+//创建部分退款任务
+    private function asyn_dispute_refund($arg) {
+        $data = [
+            'order_sn' => $arg['order_sn'],
+            'reason' => $arg['reason'],
+            'refund' => $arg['f_money']
+        ];
+        $param = http_build_query($data);
+        $fp = fsockopen('ssl://' . $this->weburl, 443, $errno, $errstr, 20);
+        if (!$fp){
+            echo 'error fsockopen';
+        }else{
+            stream_set_blocking($fp,0);
+            $http = "GET /index/plan/wx_dispute_refund?".$param." HTTP/1.1\r\n";
             $http .= "Host: ".$this->weburl."\r\n";
             $http .= "Connection: Close\r\n\r\n";
             fwrite($fp,$http);

@@ -291,7 +291,7 @@ class Plan extends Controller {
             $reason = input('param.reason', '');
             $map[] = ['order_sn', '=', $order_sn];
             $map[] = ['pay_status', '=', 1];
-            $map[] = ['status', 'in', [-1,-3,-2,5]];
+            $map[] = ['status', 'in', [-1,-2,-3,5]];//未过审,无人接单,应邀人取消,未完成
             $exist = Db::table('mp_req')->where($map)->find();
             if ($exist) {
                 try {
@@ -313,6 +313,7 @@ class Plan extends Controller {
                 if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
                     $refundlog = [
                         'order_sn' => $order_sn,
+                        'trans_id' => $transactionId,
                         'detail' => json_encode($result),
                         'cmd' => $cmd,
                         'type' => 3,
@@ -324,6 +325,7 @@ class Plan extends Controller {
                     $result = $app->refund->byTransactionId($transactionId, $refundNumber, $totalFee, $refundFee, $config);
                     $refundlog = [
                         'order_sn' => $order_sn,
+                        'trans_id' => $transactionId,
                         'detail' => json_encode($result),
                         'cmd' => $cmd,
                         'type' => 4,
@@ -333,6 +335,7 @@ class Plan extends Controller {
                 } else {
                     $refundlog = [
                         'order_sn' => $order_sn,
+                        'trans_id' => $transactionId,
                         'detail' => json_encode($result),
                         'cmd' => $cmd,
                         'type' => 5,
@@ -347,7 +350,7 @@ class Plan extends Controller {
         }
 
     }
-    //取消订单退款(不退手续费)
+    //发布人取消订单退款(不退手续费)
     public function wx_cancel_refund() {
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
             $cmd = request()->controller() . '/' . request()->action();
@@ -355,7 +358,7 @@ class Plan extends Controller {
             $reason = input('param.reason', '');
             $map[] = ['order_sn', '=', $order_sn];
             $map[] = ['pay_status', '=', 1];
-            $map[] = ['status', 'in', [-3,-2,5]];
+            $map[] = ['status', '=', -3];//发布人取消,
             $exist = Db::table('mp_req')->where($map)->find();
             if ($exist) {
                 try {
@@ -367,7 +370,7 @@ class Plan extends Controller {
                 $app = Factory::payment($this->mp_config);
                 $transactionId = $exist['trans_id'];
                 $refundNumber = $order_sn;
-                $totalFee = floatval($exist['order_price'])*100;
+                $totalFee = floatval($exist['real_price'])*100;
                 $refundFee = floatval($exist['order_price'])*100;
                 $config = [
                     'refund_desc' => $reason,
@@ -377,6 +380,7 @@ class Plan extends Controller {
                 if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
                     $refundlog = [
                         'order_sn' => $order_sn,
+                        'trans_id' => $transactionId,
                         'detail' => json_encode($result),
                         'cmd' => $cmd,
                         'type' => 3,
@@ -388,6 +392,7 @@ class Plan extends Controller {
                     $result = $app->refund->byTransactionId($transactionId, $refundNumber, $totalFee, $refundFee, $config);
                     $refundlog = [
                         'order_sn' => $order_sn,
+                        'trans_id' => $transactionId,
                         'detail' => json_encode($result),
                         'cmd' => $cmd,
                         'type' => 4,
@@ -397,6 +402,7 @@ class Plan extends Controller {
                 } else {
                     $refundlog = [
                         'order_sn' => $order_sn,
+                        'trans_id' => $transactionId,
                         'detail' => json_encode($result),
                         'cmd' => $cmd,
                         'type' => 5,
@@ -410,6 +416,73 @@ class Plan extends Controller {
             }
         }
 
+    }
+    //订单最终矛盾退款
+    public function wx_dispute_refund() {
+        if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
+            $cmd = request()->controller() . '/' . request()->action();
+            $order_sn = input('param.order_sn');
+            $reason = input('param.reason', '订单退款');
+            $refund = input('param.refund');
+            $map[] = ['order_sn', '=', $order_sn];
+            $map[] = ['pay_status', '=', 1];
+            $map[] = ['status', '=', 6];
+            $exist = Db::table('mp_req')->where($map)->find();
+            if ($exist) {
+                try {
+                    Db::table('mp_req')->where($map)->update(['pay_status' => 2]);//更改订单支付状态
+                } catch (\Exception $e) {
+                    $this->log($cmd, $e->getMessage());
+                }
+                //执行退款操作
+                $app = Factory::payment($this->mp_config);
+                $transactionId = $exist['trans_id'];
+                $refundNumber = $order_sn;
+                $totalFee = floatval($exist['real_price'])*100;
+                $refundFee = floatval($refund)*100;
+                $config = [
+                    'refund_desc' => $reason,
+                ];
+                // 参数分别为：微信订单号、商户退款单号、订单金额、退款金额、其他参数
+                $result = $app->refund->byTransactionId($transactionId, $refundNumber, $totalFee, $refundFee, $config);
+                if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
+                    $refundlog = [
+                        'order_sn' => $order_sn,
+                        'trans_id' => $transactionId,
+                        'detail' => json_encode($result),
+                        'cmd' => $cmd,
+                        'type' => 3,
+                        'time' => time()
+                    ];
+                    Db::table('mp_req_refund')->insert($refundlog);
+                } else if (isset($result['err_code']) && $result['err_code'] === 'NOTENOUGH') {
+                    $config['refund_account'] = 'REFUND_SOURCE_RECHARGE_FUNDS';
+                    $result = $app->refund->byTransactionId($transactionId, $refundNumber, $totalFee, $refundFee, $config);
+                    $refundlog = [
+                        'order_sn' => $order_sn,
+                        'trans_id' => $transactionId,
+                        'detail' => json_encode($result),
+                        'cmd' => $cmd,
+                        'type' => 4,
+                        'time' => time()
+                    ];
+                    Db::table('mp_req_refund')->insert($refundlog);
+                } else {
+                    $refundlog = [
+                        'order_sn' => $order_sn,
+                        'trans_id' => $transactionId,
+                        'detail' => json_encode($result),
+                        'cmd' => $cmd,
+                        'type' => 5,
+                        'time' => time()
+                    ];
+                    Db::table('mp_req_refund')->insert($refundlog);
+                }
+
+            } else {
+                $this->log($cmd, 'order_sn not exist:' . $order_sn);
+            }
+        }
     }
 
 
