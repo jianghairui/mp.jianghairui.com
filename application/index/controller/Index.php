@@ -401,7 +401,8 @@ class Index extends Common
         $log = [
             'detail' => '申请提现',
             'money' => -$real_money,
-            'type' => 3
+            'type' => 3,
+            'openid' => $this->myinfo['openid'],
         ];
         $this->billingLog($log);
         return ajax([],1);
@@ -678,6 +679,52 @@ class Index extends Common
         }
 
     }
+    //发布人确认完成订单
+    public function orderConfirm() {
+        $val['req_id'] = input('post.req_id');
+        $this->checkPost($val);
+        $map = [
+            ['pay_status','=',1],
+            ['status','in',[2,3]],
+            ['id','=',$val['req_id']],
+            ['f_openid','=',$this->myinfo['openid']]
+        ];
+        $exist = Db::table('mp_req')->where($map)->find();
+        if(!$exist) {
+            return ajax([],10);
+        }
+
+        Db::startTrans();
+        try {
+            $reward = $exist['order_price'] - $exist['agency'];
+            $picker_billing = [
+                'req_id' => $val['req_id'],
+                'detail' => '收入',
+                'money' => $reward,
+                'openid' => $this->myinfo['openid'],
+                'type' => 1
+            ];
+            Db::table('mp_req')->where($map)->update(['status'=>4]);//更改订单状态
+            $this->billingLog($picker_billing);
+            Db::table('mp_user')->where('openid','=',$exist['to_openid'])->setInc('balance',$reward);
+            if($exist['intro_openid']) {
+                $agency_billing = [
+                    'req_id' => $val['req_id'],
+                    'detail' => '分享提成',
+                    'money' => $exist['agency'],
+                    'openid' => $exist['intro_openid'],
+                    'type' => 2
+                ];
+                $this->billingLog($agency_billing);
+                Db::table('mp_user')->where('openid','=',$exist['intro_openid'])->setInc('balance',$exist['agency']);
+            }
+            Db::commit();
+        }catch (\Exception $e) {
+            Db::rollback();
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax();
+    }
 
 //创建异步退款任务
     private function asyn_refund($arg,$type=0) {
@@ -700,6 +747,8 @@ class Index extends Common
             fclose($fp);
         }
     }
+
+
 
 
 

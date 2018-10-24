@@ -538,14 +538,6 @@ class Index extends Common
 
 
 
-
-
-
-
-
-
-
-
     public function reqShow() {
         $map[] = ['id','=',input('post.id',0)];
         try {

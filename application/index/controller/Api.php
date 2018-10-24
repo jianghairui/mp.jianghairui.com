@@ -157,6 +157,30 @@ class Api extends Common {
         return ajax($val,1);
 
     }
+
+    public function getReqDetail() {
+        $order_sn = input('post.order_sn');
+        if(is_null($order_sn) || $order_sn === '') {
+            return ajax(['order_sn'=>$order_sn],-2);
+        }
+        $map = [
+            'r.order_sn' => $order_sn,
+            'r.pay_status' => 0,
+            'r.f_openid' => $this->myinfo['openid']
+        ];
+        try {
+            $exist = Db::table('mp_req')->alias('r')
+                ->join('mp_cate c','r.cate_id=c.id','left')
+                ->field('c.cate_name,r.title,r.content,r.address,r.order_price,r.fee,r.real_price,r.num')
+                ->where($map)->find();
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        if(!$exist) {
+            return ajax([],10);
+        }
+        return ajax($exist,1);
+    }
     //申请需求
     public function apply()
     {
