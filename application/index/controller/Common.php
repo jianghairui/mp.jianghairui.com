@@ -12,6 +12,9 @@ use think\exception\HttpResponseException;
 class Common extends Controller {
 
     protected $mp_config = [];
+    protected $myinfo = [];
+    protected $domain = '';
+    protected $weburl = '';
 
 
     public function initialize()
@@ -21,6 +24,7 @@ class Common extends Controller {
             'openid' => '',
             'session_key' => ''
         ];
+        $this->weburl = 'mp.jianghairui.com';
         $this->domain = 'https://mp.jianghairui.com/';
         $this->mp_config = [
             'app_id' => 'wx0d6f8a78265b1229',
@@ -47,6 +51,10 @@ class Common extends Controller {
         $noneed = [
             'Login/login',
             'Pay/notify',
+            'Pay/rechargenotify',
+            'Index/prizenotify',
+            'Index/test',
+            'Index/test',
         ];
         if (in_array(request()->controller() . '/' . request()->action(), $noneed)) {
             return true;
@@ -105,11 +113,10 @@ class Common extends Controller {
     /**
      * 工具方法，将一个数组转成 xml 格式
      */
-    protected static function array2xml($arr) {
+    protected function array2xml($arr) {
         if(!is_array($arr) || count($arr) <= 0) {
             return false;
         }
-
         $xml = "<xml>";
         foreach ($arr as $key=>$val)
         {
@@ -149,12 +156,12 @@ class Common extends Controller {
         $filename_array = explode('.',$_FILES[$k]['name']);
         $ext = array_pop($filename_array);
 
-        $path =  'static/upload/' . date('Y-m-d');
+        $path =  'static/tmp/';
         is_dir($path) or mkdir($path,0755,true);
         //转移临时文件
         $newname = create_unique_number() . '.' . $ext;
-        move_uploaded_file($_FILES[$k]["tmp_name"], $path . "/" . $newname);
-        $filepath = $path . "/" . $newname;
+        move_uploaded_file($_FILES[$k]["tmp_name"], $path . $newname);
+        $filepath = $path . $newname;
 
         return array('error'=>0,'data'=>$filepath);
     }
@@ -178,20 +185,33 @@ class Common extends Controller {
         return array('error'=>0,'data'=>$arr);
     }
 
+    protected function rename_file($tmp,$path = '') {
+        $filename = substr(strrchr($tmp,"/"),1);
+        $path = $path ? $path : 'static/uploads/req/';
+        $path.= date('Y-m-d') . '/';
+        is_dir($path) or mkdir($path,0755,true);
+        @rename($tmp, $path . $filename);
+        return $path . $filename;
+    }
+
     //检验格式大小
     private function checkfile($file) {
         $allowType = array(
             "image/gif",
             "image/jpeg",
+            "image/jpg",
             "image/png",
             "image/pjpeg",
             "image/bmp"
         );
+        if($_FILES[$file]["type"] == '') {
+            return '图片存在中文名或超过2M';
+        }
         if(!in_array($_FILES[$file]["type"],$allowType)) {
-            return 'invalid fileType :' . $_FILES[$file]["name"];
+            return '图片格式无效' . $_FILES[$file]["type"];
         }
         if($_FILES[$file]["size"] > 1024*300) {
-            return 'fileSize not exceeding  300Kb :' . $_FILES[$file]["name"];
+            return '图片大小不超过300Kb';
         }
         if ($_FILES[$file]["error"] > 0) {
             return "error: " . $_FILES[$file]["error"];
@@ -206,6 +226,44 @@ class Common extends Controller {
             return true;
         }else {
             return false;
+        }
+    }
+
+    protected function billingLog($insert_data = []) {
+        $insert_data['create_time'] = time();
+        Db::table('mp_billing')->insert($insert_data);
+    }
+
+    //生成签名
+    protected function getSign($arr)
+    {
+        //去除数组中的空值
+        $arr = array_filter($arr);
+        //如果数组中有签名删除签名
+        if(isset($arr['sing']))
+        {
+            unset($arr['sing']);
+        }
+        //按照键名字典排序
+        ksort($arr);
+        //生成URL格式的字符串
+        $str = http_build_query($arr)."&key=".$this->mp_config['key'];
+        $str = $this->arrToUrl($str);
+        return  strtoupper(md5($str));
+    }
+    //URL解码为中文
+    protected function arrToUrl($str)
+    {
+        return urldecode($str);
+    }
+
+    protected function log($cmd,$str) {
+        $file= ROOT_PATH . '/exception_api.txt';
+        $text='[Time ' . date('Y-m-d H:i:s') ."]\ncmd:" .$cmd. "\n" .$str. "\n---END---" . "\n";
+        if(false !== fopen($file,'a+')){
+            file_put_contents($file,$text,FILE_APPEND);
+        }else{
+            echo '创建失败';
         }
     }
 

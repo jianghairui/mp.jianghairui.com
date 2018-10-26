@@ -12,25 +12,53 @@ use think\Exception;
 
 class Api extends Common {
 
+    //获取我的openid
+    public function getMyOpenid() {
+        $openid = $this->myinfo['openid'];
+        return ajax($openid);
+    }
     //获取城市列表
     public function getCitylist() {
         $citylist = Db::table('mp_city')->select();
         $data['list'] = $this->sortMerge($citylist,0);
         return ajax($data);
     }
-    //获取需求列表
+    //获取需求列表(社区的按距离排序,默认本市)
     public function getRlist()
     {
-        $condition['page'] = input('post.page',2);
+        $condition['page'] = input('post.page',1);
         $condition['perpage'] = input('post.perpage',10);
-        $condition['city'] = input('post.city');
-        $condition['county'] = input('post.county');
         $condition['lon'] = input('post.lon');
         $condition['lat'] = input('post.lat');
+        $condition['gender'] = input('post.gender');
+
+        $condition['city'] = input('post.city');
+        $condition['county'] = input('post.county');
 
         $model = model('Req');
         $list = $model::sortlist($condition);
         return ajax($list,1);
+    }
+    //获取需求列表(世界的,按VIP排序)
+    public function getWorldRlist() {
+        $page = input('post.page',1);
+        $perpage = input('post.perpage',10);
+        $gender = input('post.gender');
+
+        $map[] = ['r.pay_status','=',1];
+        $map[] = ['r.status','=',1];
+        $map[] = ['r.show','=',1];
+        if($gender) {
+            $map[] = ['u.gender','=',$gender];
+        }
+        $data['count'] = Db::table('mp_req')->alias('r')->join('mp_user u','r.f_openid=u.openid','left')->where($map)->count();
+        $data['list'] = Db::table('mp_req')->alias('r')
+            ->join('mp_user u','r.f_openid=u.openid','left')
+            ->field('r.*,u.nickname,u.avatar,u.gender,u.vip')
+            ->where($map)
+            ->order(['vip'=>'DESC','id'=>'DESC'])
+            ->limit(($page-1)*$perpage,$perpage)->select();
+        return ajax($data,1);
     }
     //获取分类列表
     public function getCatelist() {
@@ -61,13 +89,14 @@ class Api extends Common {
         $val['form_id'] = input('post.formid');
 
         $this->checkPost($val);
+        $image = input('post.image');
         $this->checkRealnameAuth();
 
         if(!$this->checkExist('mp_cate',[
             ['id','=',$val['cate_id']],
             ['pid','<>',0]
             ])) {
-            return ajax([],-3);
+            return ajax('cate_id',-3);
         }
 
         if(!is_currency($val['order_price'])) {
@@ -100,42 +129,66 @@ class Api extends Common {
         $val['city'] = $cityinfo['city'];
         $val['county'] = $cityinfo['district'];
 
-        foreach ($_FILES as $k=>$v) {
-            if($v['name'] == '') {
-                unset($_FILES[$k]);
+
+        if(is_array($image) && !empty($image)) {
+            if(count($image) > 9) {
+                return ajax('最多上传9张图片',9);
+            }
+            foreach ($image as $v) {
+                if(!file_exists($v)) {
+                    return ajax($v,29);
+                }
             }
         }
-        if(count($_FILES) >= 9) {
-            return ajax('最多上传9张图片',9);
+        $image_array = [];
+        foreach ($image as $v) {
+            $image_array[] = $this->rename_file($v);
         }
-
-        $info = $this->multi_upload('static/uploads/req/');
-        if($info['error'] === 0) {
-            $val['image'] = serialize($info['data']);
-        }else {
-            return ajax($info['msg'],9);
-        }
+        $val['image'] = serialize($image_array);
         try {
             Db::table('mp_req')->insert($val);
         }catch (\Exception $e) {
-            if(count($_FILES) > 0) {
-                foreach ($info['data'] as $v) {
-                    @unlink($v);
-                }
+            foreach ($image_array as $v) {
+                @unlink($v);
             }
             return ajax($e->getMessage(),-1);
         }
+
         return ajax($val,1);
 
+    }
+
+    public function getReqDetail() {
+        $order_sn = input('post.order_sn');
+        if(is_null($order_sn) || $order_sn === '') {
+            return ajax(['order_sn'=>$order_sn],-2);
+        }
+        $map = [
+            'r.order_sn' => $order_sn,
+            'r.pay_status' => 0,
+            'r.f_openid' => $this->myinfo['openid']
+        ];
+        try {
+            $exist = Db::table('mp_req')->alias('r')
+                ->join('mp_cate c','r.cate_id=c.id','left')
+                ->field('c.cate_name,r.title,r.content,r.address,r.order_price,r.fee,r.real_price,r.num')
+                ->where($map)->find();
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        if(!$exist) {
+            return ajax([],10);
+        }
+        return ajax($exist,1);
     }
     //申请需求
     public function apply()
     {
         $val['rid'] = input('post.rid');
+        $val['form_id'] = input('post.formid');
         $this->checkPost($val);
         $val['intro_openid'] = input('post.intro_openid');
         $val['to_openid'] = $this->myinfo['openid'];
-
         $this->checkRealnameAuth();
 
         if($val['intro_openid'] == $this->myinfo['openid']) {
@@ -151,6 +204,7 @@ class Api extends Common {
 
         $map[] = ['id','=',$val['rid']];
         $map[] = ['status','=',1];
+        $map[] = ['end_time','<',time()];
 
         $req_exist = Db::table('mp_req')->where($map)->find();
         if(!$req_exist) {
@@ -221,8 +275,6 @@ class Api extends Common {
     //抽奖
     public function luckyDraw() {
         $openid = $this->myinfo['openid'];
-        $val['tel'] = input('post.tel');
-        $val['address'] = input('post.address');
         $val['prize_id'] = input('post.prize_id');
         $val['form_id'] = input('post.formid');
         $this->checkPost($val);
@@ -230,7 +282,6 @@ class Api extends Common {
         if(!is_tel($val['tel'])) {
             return ajax([],14);
         }
-
         $myjoin = Db::table('mp_prize_actor')->where('openid','=',$openid)->column('prize_id');
 
         $map[] = ['id','=',$val['prize_id']];
@@ -255,8 +306,10 @@ class Api extends Common {
 
         Db::startTrans();
         try {
+            $val['order_sn'] = create_unique_number('P');
             $val['openid'] = $this->myinfo['openid'];
             $val['create_time'] = time();
+            $val['price'] = Db::table('mp_setting')->where('id','=',1)->value('carriage');
             Db::table('mp_prize_actor')->insert($val);
             $res = Db::table('mp_user')->where('openid','=',$openid)->setDec('times');
             Db::commit();
@@ -274,6 +327,37 @@ class Api extends Common {
     }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public function uploadImage() {
+        if(!empty($_FILES)) {
+            if(count($_FILES) > 1) {
+                return ajax('最多上传一张图片',9);
+            }
+            $info = $this->upload(array_keys($_FILES)[0]);
+            if($info['error'] === 0) {
+                return ajax(['path'=>$info['data']]);
+            }else {
+                return ajax($info['msg'],9);
+            }
+        }else {
+            return ajax('请上传图片',30);
+        }
+    }
 
     private function sortMerge($node,$pid=0)
     {

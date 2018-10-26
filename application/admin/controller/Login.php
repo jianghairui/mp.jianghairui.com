@@ -35,18 +35,18 @@ class Login extends Common {
             if($login_vcode !== session('login_vcode')) {
                 $this->error('验证码错误',url('Login/index'));
             }
-            session('login_vcode',null);
             $where['username'] = input('post.username');
             $where['password'] = md5(input('post.password') . config('login_key'));
             $result = Db::table('mp_admin')->where($where)->find();
             if($result) {
+                session('login_vcode',null);
                 Db::table('mp_admin')->where($where)->setInc('login_times');
                 Db::table('mp_admin')->where($where)->update(['last_login_time'=>time(),'last_login_ip'=>$this->getip()]);
                 session('mploginstatus',md5(input('post.username') . 'jiang'));
                 session('admin_id',$result['id']);
                 session('username',$result['username']);
                 session('realname',$result['realname']);
-                session('login_times',$result['login_times']);
+                session('login_times',$result['login_times'] + 1);
                 session('last_login_time',$result['last_login_time']);
                 session('last_login_ip',$result['last_login_ip']);
 
@@ -57,6 +57,7 @@ class Login extends Common {
                     cookie('mp_username',null);
                     cookie('mp_password',null);
                 }
+                $this->log('登录账号',0);
                 $this->redirect(url('Index/index'));
             }else {
                 $this->error('用户名密码不匹配',url('Login/index'));
@@ -76,6 +77,12 @@ class Login extends Common {
 
     public function personal() {
         return $this->fetch();
+    }
+
+    public function test() {
+//        halt(session('login_vcode'));
+//        session_start();
+//        halt($_SESSION);
     }
 
 
