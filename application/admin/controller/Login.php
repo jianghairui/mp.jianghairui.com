@@ -39,6 +39,9 @@ class Login extends Common {
             $where['password'] = md5(input('post.password') . config('login_key'));
             $result = Db::table('mp_admin')->where($where)->find();
             if($result) {
+                if($result['status'] == 0 && $result['username'] !== config('superman')) {
+                    exit($this->fetch('frozen'));
+                }
                 session('login_vcode',null);
                 Db::table('mp_admin')->where($where)->setInc('login_times');
                 Db::table('mp_admin')->where($where)->update(['last_login_time'=>time(),'last_login_ip'=>$this->getip()]);

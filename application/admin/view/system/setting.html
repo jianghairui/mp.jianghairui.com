@@ -61,6 +61,14 @@
                         <input type="text" id="credit" placeholder="输入整数" value="{$info.credit}" class="input-text" name="credit">
                     </div>
                 </div>
+                <div class="row cl">
+                    <label class="form-label col-xs-4 col-sm-2">
+                        <span class="c-red">*</span>
+                        拉黑临界信誉值：</label>
+                    <div class="formControls col-xs-8 col-sm-9">
+                        <input type="text" id="min_credit" placeholder="输入整数" value="{$info.min_credit}" class="input-text" name="min_credit">
+                    </div>
+                </div>
             </div>
             <div class="tabCon">
                 <div class="row cl">
@@ -122,6 +130,10 @@
                     number:true
                 },
                 credit:{
+                    required:true,
+                    number:true
+                },
+                min_credit:{
                     required:true,
                     number:true
                 }

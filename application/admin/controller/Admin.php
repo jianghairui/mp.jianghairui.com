@@ -155,7 +155,7 @@ class Admin extends Common {
     public function adminDel() {
         $id = input('post.id');
         if($id == 1) {
-            return ajax('非法操作',-1);
+            return ajax('没有权限',-1);
         }
         try {
             Db::table('mp_admin')->where('id','=',$id)->delete();
@@ -197,7 +197,7 @@ class Admin extends Common {
     public function adminStop() {
         $id = input('post.id');
         if($id == 1) {
-            return ajax('非法操作',-1);
+            return ajax('没有权限',-1);
         }
         try {
             Db::table('mp_admin')->where('id','=',$id)->update(['status'=>0]);
@@ -210,7 +210,7 @@ class Admin extends Common {
     public function adminStart() {
         $id = input('post.id');
         if($id == 1) {
-            return ajax('非法操作',-1);
+            return ajax('没有权限',-1);
         }
         try {
             Db::table('mp_admin')->where('id','=',$id)->update(['status'=>1]);

@@ -23,6 +23,7 @@ class System extends Common {
         $val['minimum'] = input('post.minimum');
         $val['carriage'] = input('post.carriage');
         $val['credit'] = input('post.credit');
+        $val['min_credit'] = input('post.min_credit');
         $this->checkPost($val);
         $val['allow_ip'] = input('post.allow_ip');
 
