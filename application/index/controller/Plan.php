@@ -55,7 +55,7 @@ class Plan extends Controller {
     }
     //执行的计划任务
     public function prizeStatus() {
-        $_SERVER['REMOTE_ADDR'] = '47.104.130.39';
+//        $_SERVER['REMOTE_ADDR'] = '47.104.130.39';
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
             $map[] = ['open_time','<=',time()];
             $map[] = ['status','=',1];
@@ -89,7 +89,7 @@ class Plan extends Controller {
                     }
                     try {
                         Db::table('mp_prize_actor')->where('id','in',$winner)->update(['win'=>1,'win_time'=>time()]);
-                        Db::table('mp_prize_actor')->where('id','in',$loser)->update(['win'=>0]);
+                        Db::table('mp_prize_actor')->where('id','in',$loser)->update(['win'=>0,'win_time'=>time()]);
                     }catch (\Exception $e) {
                         $this->log('Plan/prizeResult',$e->getMessage());
                     }
@@ -166,7 +166,7 @@ class Plan extends Controller {
     }
     //执行的计划任务
     public function reqStatus() {
-        $_SERVER['REMOTE_ADDR'] = '47.104.130.39';
+//        $_SERVER['REMOTE_ADDR'] = '47.104.130.39';
         if($_SERVER['REMOTE_ADDR'] === '47.104.130.39') {
             $cmd = request()->controller() . '/' . request()->action();
             $map[] = ['pay_status','=',1];

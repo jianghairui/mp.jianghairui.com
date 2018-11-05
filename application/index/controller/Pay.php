@@ -28,8 +28,8 @@ class Pay extends Common {
             $result = $app->order->unify([
                 'body' => $exist['title'],
                 'out_trade_no' => $val['order_sn'],
-//                'total_fee' => floatval($exist['real_price']) * 100,
-                'total_fee' => 1,
+                'total_fee' => floatval($exist['real_price']) * 100,
+//                'total_fee' => 1,
                 'notify_url' => $this->domain . 'index/pay/notify',
                 'trade_type' => 'JSAPI',
                 'openid' => $this->myinfo['openid'],
