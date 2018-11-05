@@ -4,26 +4,10 @@ use think\Controller;
 use think\Db;
 class Test extends Controller
 {
-    private function index()
+    public function index()
     {
-        $data1 = array(
-            'username' => '姜海蕤',
-            'gender' => 1,
-            'address' => '天津市西青区张家窝镇灵泉北里8号楼2门501'
-        );
-        $data2 = array(
-            'username' => '张涛',
-            'gender' => 1,
-            'address' => '天津市西青区张家窝镇灵泉北里8号楼2门501'
-        );
-        $data3 = array(
-            'username' => '孙珂珺',
-            'gender' => 1,
-            'address' => '天津市西青区张家窝镇灵泉北里8号楼2门501'
-        );
-//        $redis = mredis()->set('username',$data,30);
-//        $redis = mredis()->LPush('prize_actor_list',$data1);
-//        halt($redis);
+        $list = Db::table('mp_user')->select();
+        halt($list);
     }
 
     private function test() {

@@ -69,7 +69,7 @@ class Login extends Common {
         try {
             $decryptedData = $app->encryptor->decryptData($this->myinfo['session_key'], $iv, $encryptData);
         }catch (\Exception $e) {
-            return ajax($e->getMessage(),4);
+            return ajax($e->getMessage(),-1);
         }
 
         $exist = Db::table('mp_user')->where('openid','=',$decryptedData['openId'])->find();

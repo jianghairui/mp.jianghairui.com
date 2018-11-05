@@ -63,7 +63,15 @@
                 <td>{$li.nickname}</td>
                 <td>{$li.realname}</td>
                 <td><b style="color:blue">￥：{$li.balance}</b></td>
-                <td>{$li.gender}</td>
+                <td>
+                    {switch $li['gender']}
+                    {case 1}
+                    <span>男</span>{/case}
+                    {case 2}
+                    <span>女</span>{/case}
+                    {default /}
+                    {/switch}
+                </td>
                 <td>{$li.tel}</td>
                 <td>{$li.age}</td>
                 <td>{$li.create_time|date='Y-m-d H:i'}</td>

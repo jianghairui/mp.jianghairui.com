@@ -54,7 +54,7 @@ class Api extends Common {
         $data['count'] = Db::table('mp_req')->alias('r')->join('mp_user u','r.f_openid=u.openid','left')->where($map)->count();
         $data['list'] = Db::table('mp_req')->alias('r')
             ->join('mp_user u','r.f_openid=u.openid','left')
-            ->field('r.*,u.nickname,u.avatar,u.gender,u.vip')
+            ->field('r.*,u.nickname,u.credit,u.avatar,u.gender,u.vip')
             ->where($map)
             ->order(['vip'=>'DESC','id'=>'DESC'])
             ->limit(($page-1)*$perpage,$perpage)->select();
@@ -173,6 +173,7 @@ class Api extends Common {
                 ->join('mp_cate c','r.cate_id=c.id','left')
                 ->field('c.cate_name,r.title,r.content,r.address,r.order_price,r.fee,r.real_price,r.num')
                 ->where($map)->find();
+            $exist['credit'] = Db::table('mp_user')->where('openid','=',$exist['f_openid'])->value('credit');
         }catch (\Exception $e) {
             return ajax($e->getMessage(),-1);
         }

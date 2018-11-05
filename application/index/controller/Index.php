@@ -256,7 +256,7 @@ class Index extends Common
         $data['list'] = Db::table('mp_req')->alias('r')
             ->join('mp_cate c','r.cate_id=c.id','left')
             ->where($map)
-            ->field('r.title,r.content,r.address,r.num,r.order_price,r.real_price,r.create_time,r.status,c.cate_name')
+            ->field('r.order_sn,r.title,r.content,r.address,r.num,r.order_price,r.real_price,r.create_time,r.pay_status,r.status,c.cate_name')
             ->order(['r.id'=>'DESC'])->limit(($page-1)*$perpage,$perpage)->select();
         return ajax($data);
     }
@@ -373,7 +373,8 @@ class Index extends Common
         $balance = Db::table('mp_user')->where($where)->value('balance');
         $withdraw_rate = $setting['withdraw_rate'];
 
-        $real_money = round((floatval($withdraw_rate)+1)*floatval($val['money']),2);
+        $real_money = floor((floatval($withdraw_rate)+1)*floatval($val['money'])*100)/100;
+        $fee = bcsub($real_money , floatval($val['money']) ,2);
 
         if(floatval($balance) < $real_money) {
             return ajax([],31);
@@ -386,7 +387,7 @@ class Index extends Common
                 'openid' => $openid,
                 'money' => $val['money'],
                 'withdraw_rate' => $withdraw_rate,
-                'fee' => round(floatval($withdraw_rate)*floatval($val['money']),2),
+                'fee' => $fee,
                 'real_money' => $real_money,
                 'apply_time' => time(),
                 'form_id' => $val['form_id']
