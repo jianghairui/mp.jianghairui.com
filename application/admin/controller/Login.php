@@ -32,7 +32,7 @@ class Login extends Common {
     public function login() {
         if(request()->isPost()) {
             $login_vcode = input('post.login_vcode');
-            if($login_vcode !== session('login_vcode')) {
+            if(strtolower($login_vcode) !== strtolower(session('login_vcode'))) {
                 $this->error('验证码错误',url('Login/index'));
             }
             $where['username'] = input('post.username');
@@ -79,7 +79,32 @@ class Login extends Common {
     }
 
     public function personal() {
+        $id = session('admin_id');
+        $info = Db::table('mp_admin')->where('id','=',$id)->find();
+        $this->assign('info',$info);
         return $this->fetch();
+    }
+
+    public function modifyInfo() {
+        $id = session('admin_id');
+        $val['realname'] = input('post.realname');
+        $val['gender'] = input('post.gender');
+        $val['tel'] = input('post.tel');
+        $val['email'] = input('post.email');
+        $this->checkPost($val);
+        $val['password'] = input('post.password');
+        $val['desc'] = input('post.desc');
+        if($val['password']) {
+            $val['password'] = md5($val['password'] . config('login_key'));
+        }else {
+            unset($val['password']);
+        }
+        try {
+            Db::table('mp_admin')->where('id','=',$id)->update($val);
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        return ajax($val,1);
     }
 
     public function test() {

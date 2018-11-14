@@ -10,6 +10,12 @@
             </div>
         </div>
         <div class="row cl">
+            <label class="form-label col-xs-4 col-sm-2"><span class="c-red">*</span>奖品名称：</label>
+            <div class="formControls col-xs-8 col-sm-9">
+                <input type="text" class="input-text" value="" placeholder="" id="prize" name="prize">
+            </div>
+        </div>
+        <div class="row cl">
             <label class="form-label col-xs-4 col-sm-2">
                 <span id="btn-star" class="btn btn-primary btn-uploadstar radius ml-10">选择图片</span>
             </label>
@@ -93,6 +99,10 @@
                 title:{
                     required:true,
                     maxlength:100
+                },
+                prize:{
+                    required:true,
+                    maxlength:30
                 },
                 num:{
                     required:true,

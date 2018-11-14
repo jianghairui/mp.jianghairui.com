@@ -48,6 +48,7 @@ class Api extends Common {
         $map[] = ['r.pay_status','=',1];
         $map[] = ['r.status','=',1];
         $map[] = ['r.show','=',1];
+        $map[] = ['r.world','=',2];
         if($gender) {
             $map[] = ['u.gender','=',$gender];
         }
@@ -87,6 +88,7 @@ class Api extends Common {
         $val['end_time'] = input('post.end_time');
         $val['deadline'] = input('post.deadline');
         $val['form_id'] = input('post.formid');
+        $val['world'] = input('post.world');
 
         $this->checkPost($val);
         $image = input('post.image');
@@ -171,9 +173,10 @@ class Api extends Common {
         try {
             $exist = Db::table('mp_req')->alias('r')
                 ->join('mp_cate c','r.cate_id=c.id','left')
-                ->field('c.cate_name,r.title,r.content,r.address,r.order_price,r.fee,r.real_price,r.num')
+                ->field('c.cate_name,r.title,r.content,r.address,r.order_price,r.fee,r.real_price,r.num,r.f_openid,r.image')
                 ->where($map)->find();
             $exist['credit'] = Db::table('mp_user')->where('openid','=',$exist['f_openid'])->value('credit');
+            $exist['image'] = unserialize($exist['image']);
         }catch (\Exception $e) {
             return ajax($e->getMessage(),-1);
         }
@@ -280,9 +283,6 @@ class Api extends Common {
         $val['form_id'] = input('post.formid');
         $this->checkPost($val);
 
-        if(!is_tel($val['tel'])) {
-            return ajax([],14);
-        }
         $myjoin = Db::table('mp_prize_actor')->where('openid','=',$openid)->column('prize_id');
 
         $map[] = ['id','=',$val['prize_id']];

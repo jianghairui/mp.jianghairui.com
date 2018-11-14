@@ -3,19 +3,13 @@
         <div class="row cl">
             <label class="form-label col-xs-4 col-sm-3"><span class="c-red">*</span>账号：</label>
             <div class="formControls col-xs-8 col-sm-9">
-                <input type="text" class="input-text" value="" placeholder="" id="username" name="username">
+                <input type="text" class="input-text" value="{$info.username}" placeholder="" id="username" name="username" readonly>
             </div>
         </div>
         <div class="row cl">
             <label class="form-label col-xs-4 col-sm-3"><span class="c-red">*</span>真实姓名：</label>
             <div class="formControls col-xs-8 col-sm-9">
-                <input type="text" class="input-text" value="" placeholder="" id="realname" name="realname">
-            </div>
-        </div>
-        <div class="row cl">
-            <label class="form-label col-xs-4 col-sm-3"><span class="c-red">*</span>原密码：</label>
-            <div class="formControls col-xs-8 col-sm-9">
-                <input type="password" class="input-text" autocomplete="off" value="" placeholder="密码" id="oldpassword" name="oldpassword">
+                <input type="text" class="input-text" value="{$info.realname}" placeholder="" id="realname" name="realname">
             </div>
         </div>
         <div class="row cl">
@@ -34,11 +28,11 @@
             <label class="form-label col-xs-4 col-sm-3"><span class="c-red">*</span>性别：</label>
             <div class="formControls col-xs-8 col-sm-9 skin-minimal">
                 <div class="radio-box">
-                    <input name="sex" type="radio" id="sex-1" checked>
+                    <input name="gender" type="radio" id="sex-1" value="1" {if $info['gender'] == 1}checked{/if}>
                     <label for="sex-1">男</label>
                 </div>
                 <div class="radio-box">
-                    <input type="radio" id="sex-2" name="sex">
+                    <input name="gender" type="radio" id="sex-2" value="2" {if $info['gender'] == 2}checked{/if}>
                     <label for="sex-2">女</label>
                 </div>
             </div>
@@ -46,19 +40,19 @@
         <div class="row cl">
             <label class="form-label col-xs-4 col-sm-3"><span class="c-red">*</span>手机：</label>
             <div class="formControls col-xs-8 col-sm-9">
-                <input type="text" class="input-text" value="" placeholder="" id="phone" name="phone">
+                <input type="text" class="input-text" value="{$info.tel}" placeholder="" id="tel" name="tel">
             </div>
         </div>
         <div class="row cl">
             <label class="form-label col-xs-4 col-sm-3"><span class="c-red">*</span>邮箱：</label>
             <div class="formControls col-xs-8 col-sm-9">
-                <input type="text" class="input-text" placeholder="@" name="email" id="email">
+                <input type="text" class="input-text" value="{$info.email}" placeholder="@" name="email" id="email">
             </div>
         </div>
         <div class="row cl">
             <label class="form-label col-xs-4 col-sm-3">备注：</label>
             <div class="formControls col-xs-8 col-sm-9">
-                <textarea name="" cols="" rows="" maxlength="100" class="textarea"  placeholder="说点什么...100个字符以内" dragonfly="true" onKeyUp="$.Huitextarealength(this,100)"></textarea>
+                <textarea name="desc" cols="" rows="" maxlength="100" class="textarea"  placeholder="说点什么...100个字符以内" dragonfly="true" >{$info.desc}</textarea>
                 <p class="textarea-numberbar"><em class="textarea-length">0</em>/100</p>
             </div>
         </div>
@@ -82,52 +76,65 @@
             increaseArea: '20%'
         });
 
+        var isclick = true;
+
         $("#form-admin-add").validate({
             rules:{
-                adminName:{
+                realname:{
                     required:true,
-                    minlength:4,
                     maxlength:16
                 },
                 password:{
-                    required:true,
+                    // required:true,
+                    minlength:6,
+                    maxlength:32
                 },
                 password2:{
-                    required:true,
+                    // required:true,
                     equalTo: "#password"
                 },
-                sex:{
+                gender:{
                     required:true,
+                    number:true,
+                    min:1,
+                    max:2
                 },
-                phone:{
+                tel:{
                     required:true,
                     isPhone:true,
                 },
                 email:{
                     required:true,
-                    email:true,
-                },
-                adminRole:{
-                    required:true,
-                },
+                    email:true
+                }
             },
-            onkeyup:false,
             focusCleanup:true,
             success:"valid",
             submitHandler:function(form){
-                $(form).ajaxSubmit({
-                    type: 'post',
-                    url: "xxxxxxx" ,
-                    success: function(data){
-                        layer.msg('添加成功!',{icon:1,time:1000});
-                    },
-                    error: function(XmlHttpRequest, textStatus, errorThrown){
-                        layer.msg('error!',{icon:1,time:1000});
-                    }
-                });
-                // var index = parent.layer.getFrameIndex(window.name);
-                // parent.$('.btn-refresh').click();
-                // parent.layer.close(index);
+                if(isclick) {
+                    isclick = false;
+                    $(form).ajaxSubmit({
+                        type: 'post',
+                        url: "{:url('Login/modifyInfo')}" ,
+                        success: function(data){
+                            console.log(data);
+                            if(data.code == 1) {
+                                layer.msg('已保存!',{icon:1,time:1000},function(){
+                                    // window.parent.location.reload();
+                                    layer_close();
+                                });
+                            }else {
+                                layer.msg(data.data,{icon:2,time:1000});
+                                isclick = true
+                            }
+                        },
+                        error: function(XmlHttpRequest, textStatus, errorThrown){
+                            layer.msg('接口请求失败!',{icon:2,time:1000});
+                            isclick = true
+                        }
+                    });
+                }
+
             }
         });
     });

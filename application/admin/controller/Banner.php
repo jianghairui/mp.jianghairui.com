@@ -206,6 +206,7 @@ class Banner extends Common {
     public function prizeadd_post() {
         if(Request::isAjax()) {
             $val['title'] = input('post.title');
+            $val['prize'] = input('post.prize');
             $val['num'] = input('post.num');
             $val['sort'] = input('post.sort');
             $val['probability'] = input('post.probability');
@@ -263,6 +264,7 @@ class Banner extends Common {
     public function prizemod_post() {
         if(Request::isAjax()) {
             $val['title'] = input('post.title');
+            $val['prize'] = input('post.prize');
             $val['id'] = input('post.prize_id');
             $val['num'] = input('post.num');
             $val['sort'] = input('post.sort');
