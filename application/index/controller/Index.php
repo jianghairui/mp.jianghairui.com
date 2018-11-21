@@ -250,6 +250,11 @@ class Index extends Common
     //我的发布列表            SELECT * FROM article ORDER BY LOCATE(userid,'4,1,2,3'),id DESC;
     public function myRelease() {
         $map[] = ['r.f_openid','=',$this->myinfo['openid']];
+        $req_status = input('post.status');
+
+        if(isset($req_status) && $req_status !== '') {
+            $map[] = ['r.status','=',$req_status];
+        }
         $page = input('post.page',1);
         $perpage = input('post.perpage',10);
         $data['count'] = Db::table('mp_req')->alias('r')->where($map)->count();
