@@ -26,6 +26,7 @@ class System extends Common {
         $val['min_credit'] = input('post.min_credit');
         $this->checkPost($val);
         $val['allow_ip'] = input('post.allow_ip');
+        $val['contact'] = input('post.contact');
 
         if(!is_currency($val['minimum'])) {
             return ajax('金额不可以低于1',-1);

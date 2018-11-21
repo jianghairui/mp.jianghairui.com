@@ -69,6 +69,14 @@
                         <input type="text" id="min_credit" placeholder="输入整数" value="{$info.min_credit}" class="input-text" name="min_credit">
                     </div>
                 </div>
+                <div class="row cl">
+                    <label class="form-label col-xs-4 col-sm-2">
+                        <span class="c-red">*</span>
+                        客服电话：</label>
+                    <div class="formControls col-xs-8 col-sm-9">
+                        <input type="text" id="contact" placeholder="输入手机号" value="{$info.contact}" class="input-text" name="contact">
+                    </div>
+                </div>
             </div>
             <div class="tabCon">
                 <div class="row cl">
@@ -136,6 +144,9 @@
                 min_credit:{
                     required:true,
                     number:true
+                },
+                contact: {
+                    isPhone:true
                 }
             },
             focusCleanup:true,
