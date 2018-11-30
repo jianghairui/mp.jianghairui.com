@@ -125,6 +125,12 @@ class Index extends Common
         $list = Db::table('mp_job')->where($where)->select();
         return ajax($list);
     }
+    //获取职业列表
+    public function getResumeList() {
+        $where[] = ['status','=',1];
+        $list = Db::table('mp_resume')->where($where)->select();
+        return ajax($list);
+    }
     //完善个人信息
     public function completeInfo() {
 

@@ -40,6 +40,15 @@
                 </ul>
             </dd>
         </dl>
+        <dl id="menu-others">
+            <dt><i class="Hui-iconfont">&#xe666;</i> 其他设置<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
+            <dd>
+                <ul>
+                    <li><a data-href="{:url('Other/joblist')}" data-title="职业设置" href="javascript:void(0)">职业设置</a></li>
+                    <li><a data-href="{:url('Other/resumelist')}" data-title="简历设置" href="javascript:void(0)">简历设置</a></li>
+                </ul>
+            </dd>
+        </dl>
         <dl id="menu-system">
             <dt><i class="Hui-iconfont">&#xe62e;</i> 系统管理<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
             <dd>
@@ -115,6 +124,17 @@
                     {if in_array(strtolower('Admin/rulelist'),$authlist)}
                     <li><a data-href="{:url('Admin/rulelist')}" data-title="权限管理" href="javascript:void(0)">权限管理</a></li>
                     {/if}
+                </ul>
+            </dd>
+        </dl>
+        {/if}
+        {if in_array(strtolower('Other'),$authlist)}
+        <dl id="others">
+            <dt><i class="Hui-iconfont">&#xe666;</i> 其他设置<i class="Hui-iconfont menu_dropdown-arrow">&#xe6d5;</i></dt>
+            <dd>
+                <ul>
+                    <li><a data-href="{:url('Other/joblist')}" data-title="职业设置" href="javascript:void(0)">职业设置</a></li>
+                    <li><a data-href="{:url('Other/resumelist')}" data-title="简历设置" href="javascript:void(0)">简历设置</a></li>
                 </ul>
             </dd>
         </dl>
