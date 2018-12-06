@@ -36,8 +36,11 @@ class Api extends Common {
         $condition['county'] = input('post.county');
 
         $model = model('Req');
-        $list = $model::sortlist($condition);
-        return ajax($list,1);
+        $data = $model::sortlist($condition);
+        foreach ($data['list'] as &$v) {
+            $v['share_image'] = unserialize($v['image'])[0];
+        }
+        return ajax($data,1);
     }
     //获取需求列表(世界的,按VIP排序)
     public function getWorldRlist() {
@@ -59,6 +62,10 @@ class Api extends Common {
             ->where($map)
             ->order(['vip'=>'DESC','id'=>'DESC'])
             ->limit(($page-1)*$perpage,$perpage)->select();
+
+        foreach ($data['list'] as &$v) {
+            $v['share_image'] = unserialize($v['image'])[0];
+        }
         return ajax($data,1);
     }
     //获取分类列表
@@ -185,30 +192,54 @@ class Api extends Common {
         }
         return ajax($exist,1);
     }
+
+    //申请需求获取详情
+    public function getApplyDetail() {
+        $order_sn = input('post.order_sn');
+        if(is_null($order_sn) || $order_sn === '') {
+            return ajax(['order_sn'=>$order_sn],-2);
+        }
+        $map = [
+            'r.order_sn' => $order_sn,
+            'r.status' => 1,
+        ];
+        try {
+            $exist = Db::table('mp_req')->alias('r')
+                ->join('mp_cate c','r.cate_id=c.id','left')
+                ->field('c.cate_name,r.title,r.content,r.address,r.order_price,r.fee,r.real_price,r.num,r.f_openid,r.status,r.create_time,r.image')
+                ->where($map)->find();
+            $finfo = Db::table('mp_user')->where('openid','=',$exist['f_openid'])->field('tel,credit')->find();
+        }catch (\Exception $e) {
+            return ajax($e->getMessage(),-1);
+        }
+        if(!$exist) {
+            return ajax([],10);
+        }
+        $exist['tel'] = $finfo['tel'];
+        $exist['credit'] = $finfo['credit'];
+        $exist['image'] = unserialize($exist['image']);
+        return ajax($exist,1);
+    }
     //申请需求
     public function apply()
     {
-        $val['rid'] = input('post.rid');
+        $val['order_sn'] = input('post.rid');
         $val['form_id'] = input('post.formid');
         $this->checkPost($val);
         $val['intro_openid'] = input('post.intro_openid');
         $val['to_openid'] = $this->myinfo['openid'];
         $this->checkRealnameAuth();
 
-        if($val['intro_openid'] == $this->myinfo['openid']) {
-            unset($val['intro_openid']);
-        }
-
-        if($val['intro_openid']) {
+        if($val['intro_openid'] && $val['intro_openid'] != $this->myinfo['openid']) {
             $res = Db::table('mp_user')->where('openid','=',$val['intro_openid'])->find();
             if(!$res) {
                 return ajax('分享人ID不存在',23);
             }
         }
 
-        $map[] = ['id','=',$val['rid']];
+        $map[] = ['order_sn','=',$val['order_sn']];
         $map[] = ['status','=',1];
-        $map[] = ['end_time','<',time()];
+        $map[] = ['end_time','>',time()];
 
         $req_exist = Db::table('mp_req')->where($map)->find();
         if(!$req_exist) {
@@ -219,7 +250,7 @@ class Api extends Common {
             return ajax('这是自己发的单',22);
         }
 
-        $where[] = ['rid','=',$val['rid']];
+        $where[] = ['order_sn','=',$val['order_sn']];
         $where[] = ['to_openid','=',$val['to_openid']];
         if($this->checkExist('mp_apply',$where)) {
             return ajax([],11);
